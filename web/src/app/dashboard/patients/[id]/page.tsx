@@ -365,6 +365,7 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
                         },
                         p.status === "active" && { kind: "action", label: "End this plan", action: archivePlan.bind(null, p.id), confirm: `End "${p.name}"? It stays in previous plans.` },
                         p.status === "archived" && { kind: "action", label: "Give again", action: activatePlan.bind(null, p.id) },
+                        { kind: "link", label: "Print or PDF", href: `/print/plan/${p.id}` },
                         { kind: "action", label: "Duplicate", action: duplicatePlan.bind(null, p.id) },
                         (others?.length ?? 0) > 0 && {
                           kind: "dialog",
