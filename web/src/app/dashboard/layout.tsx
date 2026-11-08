@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { LogOut } from "lucide-react";
 import { Skeleton } from "@/components/ui";
+import { CommandPalette } from "@/components/command-palette";
 import { SupportBanner } from "@/components/support-banner";
 import { practiceFeatures } from "@/lib/features";
 import { navFor } from "@/lib/modules";
@@ -68,7 +69,13 @@ async function RoleNav() {
       : supabase.from("messages").select("*", { count: "exact", head: true }).eq("from_patient", true).is("read_at", null),
   ]);
   const hidden = features.has("messages") ? [] : ["/dashboard/messages"];
-  return <NavLinks items={navFor(membership.role, { "/dashboard/appointments": requests ?? 0, "/dashboard/messages": unread ?? 0 }, hidden)} />;
+  const items = navFor(membership.role, { "/dashboard/appointments": requests ?? 0, "/dashboard/messages": unread ?? 0 }, hidden);
+  return (
+    <>
+      <CommandPalette pages={items.map(({ href, label }) => ({ href, label }))} clinical={membership.role !== "assistant"} />
+      <NavLinks items={items} />
+    </>
+  );
 }
 
 async function AccountCard() {

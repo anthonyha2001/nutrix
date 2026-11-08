@@ -42,6 +42,37 @@ Phase 2 added:
 - **Creating an admin:** run `SUPABASE_URL=... SUPABASE_SECRET_KEY=... ADMIN_PASSWORD=... node web/scripts/create-super-admin.mjs <email> "<name>"`.
   Run it again after a local `supabase db reset`.
 
+**Ease of use (dietitian side):**
+
+- **Search anywhere (Ctrl+K or Cmd+K):** patients (with shortcuts to their consultation and a new plan), foods,
+  templates and pages. Searches name, phone or email.
+- **Giving a plan:** the builder saves a draft or gives the plan to the patient in one step. Drafts show a "Give
+  to" button in the plan list.
+- **Suggested targets:** the builder suggests energy and macros from the patient's weight, height, age, sex and
+  activity:
+  - energy: Mifflin-St Jeor x activity, adjusted for the goal, never below resting energy or 1,200/1,500 kcal;
+  - macros: protein by body weight, fat 30%, carbs the rest.
+
+  The dietitian picks the goal and adjusts the numbers. New plans start from these targets, and the templates
+  closest to them are listed first.
+- **One-click swaps:** a food's swaps panel suggests similar foods at the same energy. They come from the same
+  category, with the closest macro balance and energy density, cooked matched with cooked, and none of the
+  patient's allergens. Each can be added as a swap or replace the food.
+- **Plan quality check:** before a plan is given, a live list shows:
+  - the patient's allergies, including in swaps;
+  - energy and protein against the targets;
+  - empty days and meals;
+  - swaps far from their food's energy.
+
+  Giving a plan with warnings asks to confirm.
+- **Consultation mode** (`/dashboard/patients/<id>/consult`, from the patient file or an appointment): the last 7
+  days, weight trend and allergies beside the weigh-in, the note (linked to the appointment), the meal plan, the
+  next visit and attendance.
+- **WhatsApp messages:** prepared from the patient's file. They cover appointment reminders, plan ready, missed
+  appointment, not logging, check-in, weigh-in, package ending and balance due. They are edited, then sent from
+  the dietitian's own WhatsApp; nothing is sent automatically.
+- **Getting started:** a checklist on the overview for new practices, and quick actions in the patient file.
+
 Still to build: Reports (Phase 3), the daily briefing and follow-up rules (Phase 3), device imports (Phase 3),
 and meal photos and barcodes (Phase 4). Reminders are sent by hand on WhatsApp for now; automatic reminders come
 with the follow-up engine.
