@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+/* Nutrix design tokens. Same family as Gymix: same canvas, ink, lines, type,
+   radii and motion. Only the accent changes, from Gymix lime to a calm mint
+   that reads as health rather than training. Light theme only for now. */
+@theme {
+  --color-canvas: #f4f5f2;
+  --color-surface: #ffffff;
+  --color-line: #e2e4de;
+  --color-ink: #0d1117;
+  --color-muted: #5d6470;
+  --color-brand: #8fe3c2;
+  --color-brand-strong: #3fbf8f;
+  --color-danger: #c0362c;
+  --color-danger-soft: #fdecea;
+  --color-success: #1f7a3f;
+  --color-success-soft: #e7f6ec;
+
+  /* Macro colours, used consistently in every chart and plan total. */
+  --color-protein: #3b82c4;
+  --color-carbs: #e0a33a;
+  --color-fat: #c4577a;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+/* Height of the patient app's bottom tab bar while it is on screen; other
+   bottom-pinned things (toasts, action bars) sit above it. */
+:root {
+  --bottom-bar: 0px;
+}
+:root:has(nav[data-bottom-bar]) {
+  --bottom-bar: calc(4.25rem + max(env(safe-area-inset-bottom), 0.5rem));
+}
+
+/* Bottom sheets slide up; their backdrop fades in. */
+dialog.sheet[open] {
+  animation: sheet-up 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+dialog.sheet[open]::backdrop {
+  animation: sheet-fade 320ms ease-out;
+}
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes sheet-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---------------------------------------------------------------- motion
+   Same timings and curves as Gymix. Switched off for reduced motion. */
+@keyframes nx-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes nx-pop {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes nx-toast {
+  from { opacity: 0; transform: translateY(14px) scale(0.95); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes nx-bounce {
+  0% { transform: scale(0.8); }
+  60% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+@keyframes nx-shimmer {
+  to { transform: translateX(100%); }
+}
+
+.page-enter { animation: nx-rise 260ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.tab-enter > * { animation: nx-rise 220ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+dialog[open]:not(.sheet) { animation: nx-pop 200ms cubic-bezier(0.22, 1, 0.36, 1); }
+dialog[open]:not(.sheet)::backdrop { animation: sheet-fade 200ms ease-out; }
+.toast-in { animation: nx-toast 280ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.nav-bounce { animation: nx-bounce 360ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.skeleton { position: relative; overflow: hidden; }
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.55), transparent);
+  animation: nx-shimmer 1.3s ease-in-out infinite;
+}
+
+/* Cards rise one after another. */
+.stagger > * { animation: nx-rise 360ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.stagger > :nth-child(2) { animation-delay: 50ms; }
+.stagger > :nth-child(3) { animation-delay: 100ms; }
+.stagger > :nth-child(4) { animation-delay: 150ms; }
+.stagger > :nth-child(5) { animation-delay: 200ms; }
+.stagger > :nth-child(n + 6) { animation-delay: 250ms; }
+/* Everything tappable in the patient app gives a little under the finger. */
+.press :is(a, button):not(:disabled) { transition: transform 120ms ease-out; }
+.press :is(a, button):not(:disabled):active { transform: scale(0.96); }
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.sheet[open], dialog.sheet[open]::backdrop,
+  .page-enter, .tab-enter > *, dialog[open]:not(.sheet), dialog[open]:not(.sheet)::backdrop,
+  .toast-in, .nav-bounce, .stagger > * { animation: none; }
+  .skeleton::after { animation: none; display: none; }
+  .press :is(a, button):active { transform: none; }
+}
