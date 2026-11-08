@@ -17,13 +17,13 @@ const ICONS: Record<PatientIcon, LucideIcon> = {
   profile: UserRound,
 };
 
-const TABS = PATIENT_SCREENS.filter((s) => s.tab);
-const MORE = PATIENT_SCREENS.filter((s) => !s.tab);
 
 const isActive = (pathname: string, href: string) => (href === "/patient" ? pathname === href : pathname.startsWith(href));
 
 // Bottom tab bar, same build as the Gymix member portal.
-export function PatientNav({ unread = 0 }: { unread?: number }) {
+export function PatientNav({ unread = 0, hidden = [] }: { unread?: number; hidden?: string[] }) {
+  const TABS = PATIENT_SCREENS.filter((s) => s.tab && !hidden.includes(s.href));
+  const MORE = PATIENT_SCREENS.filter((s) => !s.tab && !hidden.includes(s.href));
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
   const moreActive = MORE.some((t) => isActive(pathname, t.href));

@@ -7,6 +7,7 @@ import { Card } from "@/components/ui";
 import { todayIn } from "@/lib/format";
 import { dayIndexFor, sumMacros } from "@/lib/nutrition";
 import { activePlan } from "@/lib/patient-plan";
+import { hasFeature } from "@/lib/features";
 import { requirePatient } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { formatWhen } from "@/lib/time";
@@ -18,7 +19,8 @@ export default async function TodayPage() {
   const { link } = await requirePatient();
   const today = todayIn(link.timezone);
   const supabase = await createClient();
-  const [plan, { data: entries }, { data: checkin }, { data: next }] = await Promise.all([
+  const [diaryOn, plan, { data: entries }, { data: checkin }, { data: next }] = await Promise.all([
+    hasFeature(link.practiceId, "patient_diary"),
     activePlan(link.patientId),
     supabase.from("diary_entries").select("kcal, protein_g, carbs_g, fat_g, fiber_g, plan_meal_key").eq("patient_id", link.patientId).eq("eaten_on", today),
     supabase.from("daily_checkins").select("*").eq("patient_id", link.patientId).eq("day", today).maybeSingle(),
@@ -72,15 +74,17 @@ export default async function TodayPage() {
         </Link>
       )}
 
+      {diaryOn && (
       <div className="grid gap-4 sm:grid-cols-2">
         <WaterCard date={today} ml={checkin?.water_ml ?? 0} />
         <CheckinCard date={today} checkin={checkin ? { ...checkin, sleep_hours: checkin.sleep_hours === null ? null : Number(checkin.sleep_hours), checked_in: Boolean(checkin.checked_in_at) } : null} />
       </div>
+      )}
 
       {day ? (
         <>
           <h2 className="pt-2 font-semibold">Today&apos;s meals</h2>
-          <MealDay day={day} action={(meal) => <LogMealButton date={today} meal={meal} logged={loggedMeals.has(meal.key)} />} />
+          <MealDay day={day} action={diaryOn ? (meal) => <LogMealButton date={today} meal={meal} logged={loggedMeals.has(meal.key)} /> : undefined} />
         </>
       ) : (
         <Card className="rounded-2xl p-5">

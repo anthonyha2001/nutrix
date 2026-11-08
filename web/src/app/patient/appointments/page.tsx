@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ActionButton } from "@/components/action-button";
 import { Badge, Card } from "@/components/ui";
 import { todayIn } from "@/lib/format";
+import { hasFeature } from "@/lib/features";
 import { requirePatient } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { addDays, APPOINTMENT_STATUS, formatWhen } from "@/lib/time";
@@ -12,6 +13,7 @@ export const metadata: Metadata = { title: "Appointments" };
 
 export default async function PatientAppointmentsPage() {
   const { link } = await requirePatient();
+  const booking = await hasFeature(link.practiceId, "patient_booking");
   const { data: appts } = await (await createClient())
     .from("appointments")
     .select("id, starts_at, status, online, services(name)")
@@ -46,11 +48,13 @@ export default async function PatientAppointmentsPage() {
           <p className="px-5 pb-4 text-sm text-muted">Nothing booked.</p>
         )}
       </Card>
+      {booking && (
       <Card className="rounded-2xl p-5">
         <p className="mb-1 font-semibold">Ask for an appointment</p>
         <p className="mb-4 text-sm text-muted">Choose a time that suits you. {link.practiceName} will confirm it or suggest another.</p>
         <RequestForm tomorrow={addDays(todayIn(link.timezone), 1)} />
       </Card>
+      )}
       {past.length > 0 && (
         <Card className="rounded-2xl">
           <p className="px-5 pt-4 pb-2 font-semibold">Past</p>

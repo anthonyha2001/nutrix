@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured, isUnreachable, UNREACHABLE_MESSAGE } from "@/lib/supabase/config";
@@ -7,7 +8,7 @@ import { text } from "@/lib/action-result";
 
 export type AuthFormState = { error?: string; message?: string; email?: string };
 
-const NOT_CONFIGURED = "Nutrix isn't connected to its database yet. See the README to finish setup.";
+const NOT_CONFIGURED = "Nutrix can't find its database settings. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY on the server, then redeploy.";
 
 // Only same-site paths, so a crafted ?next= can't send people to another website.
 function safeNext(formData: FormData) {
@@ -17,10 +18,13 @@ function safeNext(formData: FormData) {
 
 // Where a freshly signed-in user belongs (staff, patient, or new practice).
 async function homePath(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
-  const [{ count: staff }, { count: patient }] = await Promise.all([
+  const [{ count: staff }, { count: patient }, { data: isAdmin }] = await Promise.all([
     supabase.from("practice_users").select("*", { count: "exact", head: true }).eq("user_id", userId),
     supabase.from("patients").select("*", { count: "exact", head: true }).eq("user_id", userId),
+    supabase.rpc("is_platform_admin"),
   ]);
+  // Super admins land on the platform console.
+  if (isAdmin === true) return "/admin";
   if (staff) return "/dashboard";
   if (patient) return "/patient";
   return "/onboarding";
@@ -43,6 +47,8 @@ export async function signIn(_prev: AuthFormState, formData: FormData): Promise<
   }
   // Pick up staff invites and patient records sent to this email since signup.
   await supabase.rpc("claim_mine");
+  // A different person may have used this browser: drop its cached pages.
+  revalidatePath("/", "layout");
   redirect(safeNext(formData) ?? (await homePath(supabase, data.user.id)));
 }
 
@@ -64,11 +70,13 @@ export async function signUp(_prev: AuthFormState, formData: FormData): Promise<
     return { error: "Couldn't create the account. Please try again.", email };
   }
   if (!data.session) return { message: "Check your email to confirm your account, then log in.", email };
+  revalidatePath("/", "layout");
   redirect(safeNext(formData) ?? (await homePath(supabase, data.session.user.id)));
 }
 
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  revalidatePath("/", "layout");
   redirect("/login");
 }

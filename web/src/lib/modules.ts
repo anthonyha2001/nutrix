@@ -184,8 +184,8 @@ export function moduleFor(href: string) {
   return m;
 }
 
-export function navFor(role: PracticeRole, counts: Partial<Record<string, number>> = {}) {
-  return MODULES.filter((m) => !m.roles || m.roles.includes(role)).map(({ href, label, icon }) => ({
+export function navFor(role: PracticeRole, counts: Partial<Record<string, number>> = {}, hidden: string[] = []) {
+  return MODULES.filter((m) => (!m.roles || m.roles.includes(role)) && !hidden.includes(m.href)).map(({ href, label, icon }) => ({
     href,
     label,
     icon,

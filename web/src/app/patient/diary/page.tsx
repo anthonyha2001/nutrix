@@ -7,6 +7,8 @@ import { Card } from "@/components/ui";
 import { todayIn } from "@/lib/format";
 import { round, SLOT_LABELS, sumMacros, type MealSlot } from "@/lib/nutrition";
 import { activePlan } from "@/lib/patient-plan";
+import { redirect } from "next/navigation";
+import { hasFeature } from "@/lib/features";
 import { requirePatient } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { addDays, dayLabel } from "@/lib/time";
@@ -19,6 +21,7 @@ const SLOTS: MealSlot[] = ["breakfast", "lunch", "dinner", "snack"];
 
 export default async function DiaryPage({ searchParams }: PageProps<"/patient/diary">) {
   const { link } = await requirePatient();
+  if (!(await hasFeature(link.practiceId, "patient_diary"))) redirect("/patient");
   const { d } = await searchParams;
   const today = todayIn(link.timezone);
   const date = typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) && d <= today && d >= addDays(today, -30) ? d : today;

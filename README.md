@@ -31,6 +31,17 @@ Phase 2 added:
 - **Tests:** `supabase/tests/phase2_test.sql` (double-booking, package use, billing, LBP conversion, who sees
   money, messages and diary).
 
+**Platform super admin** (same model as Gymix): `/admin` shows per-practice numbers, with no patient data.
+- **Support access:** open any practice as owner, dietitian or assistant. A banner shows where you are, with the
+  way back.
+- **Lab:** a test practice only the admin uses. It can also be opened as a patient.
+- **Feature switches:** each feature is Off, Lab only or Everyone, with exceptions for a single practice. The
+  switches today are `messages`, `patient_diary` and `patient_booking`.
+- **Security:** all admin actions are database functions that check `is_platform_admin()`, so the web app needs
+  no secret key.
+- **Creating an admin:** run `SUPABASE_URL=... SUPABASE_SECRET_KEY=... ADMIN_PASSWORD=... node web/scripts/create-super-admin.mjs <email> "<name>"`.
+  Run it again after a local `supabase db reset`.
+
 Still to build: Reports (Phase 3), the daily briefing and follow-up rules (Phase 3), device imports (Phase 3),
 and meal photos and barcodes (Phase 4). Reminders are sent by hand on WhatsApp for now; automatic reminders come
 with the follow-up engine.

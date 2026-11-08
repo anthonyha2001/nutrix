@@ -4,6 +4,8 @@ import { Logo, Skeleton } from "@/components/ui";
 import { requirePatient } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "../(auth)/actions";
+import { SupportBanner } from "@/components/support-banner";
+import { practiceFeatures } from "@/lib/features";
 import { PatientNav } from "./patient-nav";
 
 // Nutrix Patient, delivered first as an installable web app (same approach as
@@ -23,6 +25,9 @@ export default function PatientLayout({ children }: LayoutProps<"/patient">) {
         </div>
       </header>
       <main className="press mx-auto w-full max-w-3xl flex-1 px-4 pt-6 pb-[calc(var(--bottom-bar)+1.5rem)]">
+        <Suspense fallback={null}>
+          <SupportBanner />
+        </Suspense>
         <Suspense fallback={<Skeleton className="h-64" />}>
           <PatientGate>{children}</PatientGate>
         </Suspense>
@@ -36,13 +41,12 @@ export default function PatientLayout({ children }: LayoutProps<"/patient">) {
 
 async function NavWithUnread() {
   const { link } = await requirePatient();
-  const { count } = await (await createClient())
-    .from("messages")
-    .select("*", { count: "exact", head: true })
-    .eq("patient_id", link.patientId)
-    .eq("from_patient", false)
-    .is("read_at", null);
-  return <PatientNav unread={count ?? 0} />;
+  const [features, { count }] = await Promise.all([
+    practiceFeatures(link.practiceId),
+    (await createClient()).from("messages").select("*", { count: "exact", head: true }).eq("patient_id", link.patientId).eq("from_patient", false).is("read_at", null),
+  ]);
+  const hidden = [!features.has("messages") && "/patient/messages", !features.has("patient_diary") && "/patient/diary"].filter((x): x is string => Boolean(x));
+  return <PatientNav unread={count ?? 0} hidden={hidden} />;
 }
 
 async function PatientGate({ children }: { children: React.ReactNode }) {

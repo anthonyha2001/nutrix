@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ChatThread } from "@/components/chat-thread";
 import { Card, PageHeader } from "@/components/ui";
+import { redirect } from "next/navigation";
+import { hasFeature } from "@/lib/features";
 import { CLINICAL_ROLES } from "@/lib/roles";
 import { requireStaff } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -12,6 +14,7 @@ export const metadata: Metadata = { title: "Messages" };
 
 export default async function MessagesPage({ searchParams }: PageProps<"/dashboard/messages">) {
   const { membership } = await requireStaff(CLINICAL_ROLES);
+  if (!(await hasFeature(membership.practiceId, "messages"))) redirect("/dashboard");
   const { p } = await searchParams;
   const supabase = await createClient();
   const open = typeof p === "string" ? p : null;

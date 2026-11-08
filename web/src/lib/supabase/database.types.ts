@@ -139,6 +139,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"features": {
+                  Row: {
+                    "created_at": string,"description": string,"key": string,"name": string,"rollout": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"description"?: string,"key": string,"name": string,"rollout"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"description"?: string,"key"?: string,"name"?: string,"rollout"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"food_servings": {
                   Row: {
                     "food_id": string,"grams": number,"id": string,"label": string,"sort": number
@@ -513,6 +527,72 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"platform_admin_visits": {
+                  Row: {
+                    "practice_id": string,"role": string,"started_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "practice_id": string,"role"?: string,"started_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "practice_id"?: string,"role"?: string,"started_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "platform_admin_visits_practice_id_fkey"
+      columns: ["practice_id"]
+isOneToOne: false
+      referencedRelation: "practices"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"platform_admins": {
+                  Row: {
+                    "created_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "platform_admins_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"practice_feature_overrides": {
+                  Row: {
+                    "enabled": boolean,"feature_key": string,"practice_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "enabled": boolean,"feature_key": string,"practice_id": string
+                  }
+                  Update: {
+                    "enabled"?: boolean,"feature_key"?: string,"practice_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "practice_feature_overrides_feature_key_fkey"
+      columns: ["feature_key"]
+isOneToOne: false
+      referencedRelation: "features"
+      referencedColumns: ["key"]
+    },{
+      foreignKeyName: "practice_feature_overrides_practice_id_fkey"
+      columns: ["practice_id"]
+isOneToOne: false
+      referencedRelation: "practices"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"practice_users": {
                   Row: {
                     "created_at": string,"practice_id": string,"role": Database["public"]['Enums']["practice_role"],"user_id": string
@@ -541,14 +621,14 @@ isOneToOne: false
                   ]
                 },"practices": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"id": string,"lbp_rate": number,"name": string,"slug": string,"timezone": string
+                    "created_at": string,"created_by": string | null,"id": string,"is_lab": boolean,"lbp_rate": number,"name": string,"slug": string,"timezone": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"lbp_rate"?: number,"name": string,"slug": string,"timezone"?: string
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"is_lab"?: boolean,"lbp_rate"?: number,"name": string,"slug": string,"timezone"?: string
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"lbp_rate"?: number,"name"?: string,"slug"?: string,"timezone"?: string
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"is_lab"?: boolean,"lbp_rate"?: number,"name"?: string,"slug"?: string,"timezone"?: string
                   }
                   Relationships: [
                     
@@ -703,6 +783,26 @@ isOneToOne: false
 "add_water":
 { Args: { "p_day": string,"p_ml": number }; Returns: number
                            },
+"admin_create_lab":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
+"admin_leave_practice":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"admin_open_practice":
+{ Args: { "p_practice_id": string,"p_role"?: string }; Returns: undefined
+                           },
+"admin_practice_overview":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "active_plans": number,"appointments_30d": number,"collected_30d": number,"created_at": string,"is_lab": boolean,"name": string,"owner_email": string,"owner_name": string,"patients": number,"patients_on_app": number,"practice_id": string,"staff": number
+            }[]
+                           },
+"admin_set_override":
+{ Args: { "p_key": string,"p_practice_id": string,"p_value": string }; Returns: undefined
+                           },
+"admin_set_rollout":
+{ Args: { "p_key": string,"p_rollout": string }; Returns: undefined
+                           },
 "archive_meal_plan":
 { Args: { "p_id": string }; Returns: undefined
                            },
@@ -751,6 +851,9 @@ isOneToOne: false
 "is_patient_self":
 { Args: { "p_patient_id": string }; Returns: boolean
                            },
+"is_platform_admin":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
 "is_practice_staff":
 { Args: { "p_practice_id": string }; Returns: boolean
                            },
@@ -775,6 +878,9 @@ isOneToOne: false
 "nx_next_invoice_number":
 { Args: { "p_practice_id": string }; Returns: number
                            },
+"nx_require_platform_admin":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
 "nx_snapshot":
 { Args: { "p_content": Json }; Returns: Json
                            },
@@ -786,6 +892,9 @@ isOneToOne: false
                            },
 "plan_from_template":
 { Args: { "p_patient_id": string,"p_template_id": string }; Returns: string
+                           },
+"practice_features":
+{ Args: { "p_practice_id": string }; Returns: (string)[]
                            },
 "recompute_recipe":
 { Args: { "p_recipe_id": string }; Returns: undefined

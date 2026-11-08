@@ -1,12 +1,23 @@
 // The public key: Supabase now calls it "publishable"; older projects say "anon".
-const publicKey = () => process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Accepts the names Supabase's dashboard and Vercel integration use, with or
+// without NEXT_PUBLIC_ (the app only talks to Supabase from the server).
+const publicKey = () =>
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_PUBLISHABLE_KEY ||
+  process.env.SUPABASE_ANON_KEY;
+const projectUrl = () => process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 
 export function isSupabaseConfigured() {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && publicKey());
+  return Boolean(projectUrl() && publicKey());
+}
+
+export function supabasePublicKey() {
+  return publicKey();
 }
 
 export function supabaseUrl() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = projectUrl();
   if (!url) throw new Error("NEXT_PUBLIC_SUPABASE_URL is not set");
   return url;
 }

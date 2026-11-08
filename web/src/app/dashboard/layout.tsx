@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import { LogOut } from "lucide-react";
 import { Skeleton } from "@/components/ui";
+import { SupportBanner } from "@/components/support-banner";
+import { practiceFeatures } from "@/lib/features";
 import { navFor } from "@/lib/modules";
 import { ROLE_LABELS } from "@/lib/roles";
 import { requireStaff } from "@/lib/session";
@@ -29,6 +31,9 @@ export default function DashboardLayout({ children }: LayoutProps<"/dashboard">)
         }
       />
       <main className="min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8">
+        <Suspense fallback={null}>
+          <SupportBanner />
+        </Suspense>
         <Suspense fallback={<Skeleton className="h-96" />}>{children}</Suspense>
       </main>
     </div>
@@ -55,13 +60,15 @@ async function RoleNav() {
   const supabase = await createClient();
   // Row-level security scopes both: requests the viewer may handle, and
   // unread patient messages in threads they can read (clinicians only).
-  const [{ count: requests }, { count: unread }] = await Promise.all([
+  const [features, { count: requests }, { count: unread }] = await Promise.all([
+    practiceFeatures(membership.practiceId),
     supabase.from("appointments").select("*", { count: "exact", head: true }).eq("practice_id", membership.practiceId).eq("status", "requested"),
     membership.role === "assistant"
       ? Promise.resolve({ count: 0 })
       : supabase.from("messages").select("*", { count: "exact", head: true }).eq("from_patient", true).is("read_at", null),
   ]);
-  return <NavLinks items={navFor(membership.role, { "/dashboard/appointments": requests ?? 0, "/dashboard/messages": unread ?? 0 })} />;
+  const hidden = features.has("messages") ? [] : ["/dashboard/messages"];
+  return <NavLinks items={navFor(membership.role, { "/dashboard/appointments": requests ?? 0, "/dashboard/messages": unread ?? 0 }, hidden)} />;
 }
 
 async function AccountCard() {

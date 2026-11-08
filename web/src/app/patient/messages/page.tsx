@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { ChatThread } from "@/components/chat-thread";
+import { redirect } from "next/navigation";
+import { hasFeature } from "@/lib/features";
 import { requirePatient } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { sendMessage } from "../../message-actions";
@@ -8,6 +10,7 @@ export const metadata: Metadata = { title: "Messages" };
 
 export default async function PatientMessagesPage() {
   const { link } = await requirePatient();
+  if (!(await hasFeature(link.practiceId, "messages"))) redirect("/patient");
   const supabase = await createClient();
   await supabase.rpc("mark_thread_read", { p_patient_id: link.patientId });
   const [{ data: messages }, { data: me }] = await Promise.all([
