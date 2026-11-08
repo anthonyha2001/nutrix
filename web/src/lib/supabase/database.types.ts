@@ -166,6 +166,19 @@ isOneToOne: false
                   }
                   Relationships: [
                   ]
+                },"food_translations": {
+                  Row: {
+                    "food_id": string,"id": string,"lang": string,"name": string,"practice_id": string | null,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "food_id": string,"id"?: string,"lang": string,"name": string,"practice_id"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "food_id"?: string,"id"?: string,"lang"?: string,"name"?: string,"practice_id"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                  ]
                 },"food_servings": {
                   Row: {
                     "food_id": string,"grams": number,"id": string,"label": string,"sort": number
@@ -980,6 +993,9 @@ isOneToOne: false
                            },
 "food_import_apply":
 { Args: { "p_dataset": string,"p_version": string }; Returns: number
+                           },
+"save_food_translation":
+{ Args: { "p_food_id": string; "p_lang": string; "p_name": string; "p_practice_id": string }; Returns: undefined
                            },
 "food_save_online":
 { Args: { "p": Json }; Returns: string
