@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowLeft, CalendarPlus, Lock, MessageCircle, NotebookTa
 import { hasFeature } from "@/lib/features";
 import { guessGoal, suggestTargets, type TargetProfile } from "@/lib/energy";
 import { projectGoal, projectionText } from "@/lib/projection";
+import { aiConfigured } from "@/lib/import/ai-read";
 import { ActionButton } from "@/components/action-button";
 import { Dialog } from "@/components/dialog";
 import { InviteShare } from "@/components/invite-share";
@@ -45,6 +46,7 @@ import { AppointmentDetail } from "../../appointments/appointment-detail";
 import { AppointmentsTab } from "./appointments-tab";
 import { BillingTab } from "./billing-tab";
 import { DiaryTab } from "./diary-tab";
+import { ImportDialog } from "./import-dialog";
 import { IntakePanel } from "./intake-panel";
 import { IntakeSend } from "./intake-send";
 import { LabsTab } from "./labs-tab";
@@ -181,6 +183,8 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
     supabase.from("patients").select("id, full_name").eq("practice_id", membership.practiceId).is("archived_at", null).neq("id", id).order("full_name").limit(500),
   ]);
 
+  // AI reading of photos and scans: switched on by the platform admin, and needs the server key.
+  const aiImport = (await hasFeature(membership.practiceId, "ai_document_import")) && aiConfigured();
   const allergenIds = (allergies ?? []).map((a) => a.allergen);
   const weights = (measurements ?? []).filter((m) => m.weight_kg !== null);
   const latest = weights.at(-1);
@@ -408,12 +412,17 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
 
       {/* Labs */}
       <TabPanel id="labs" tabs={TABS}>
-        <LabsTab patientId={id} today={today} />
+        <LabsTab
+          patientId={id}
+          today={today}
+          importButton={<ImportDialog patientId={id} firstName={firstName} fullName={patient.full_name} aiEnabled={aiImport} />}
+        />
       </TabPanel>
 
       {/* Measurements */}
       <TabPanel id="measurements" tabs={TABS}>
-        <div className="flex justify-end">
+        <div className="flex flex-wrap justify-end gap-2">
+          <ImportDialog patientId={id} firstName={firstName} fullName={patient.full_name} aiEnabled={aiImport} label="Import from device" />
           <Dialog label="Add measurement" icon={<Plus className="size-4" />} title="Add measurement">
             <MeasurementForm action={addMeasurement.bind(null, id)} today={today} />
           </Dialog>

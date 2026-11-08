@@ -297,14 +297,14 @@ isOneToOne: false
                   ]
                 },"lab_results": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"id": string,"measured_on": string,"note": string | null,"patient_id": string,"test": string,"unit": string,"value": number
+                    "created_at": string,"created_by": string | null,"id": string,"measured_on": string,"note": string | null,"patient_id": string,"source": string,"source_file": string | null,"source_line": string | null,"test": string,"unit": string,"value": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"measured_on": string,"note"?: string | null,"patient_id": string,"test": string,"unit": string,"value": number
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"measured_on": string,"note"?: string | null,"patient_id": string,"source"?: string,"source_file"?: string | null,"source_line"?: string | null,"test": string,"unit": string,"value": number
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"measured_on"?: string,"note"?: string | null,"patient_id"?: string,"test"?: string,"unit"?: string,"value"?: number
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"measured_on"?: string,"note"?: string | null,"patient_id"?: string,"source"?: string,"source_file"?: string | null,"source_line"?: string | null,"test"?: string,"unit"?: string,"value"?: number
                   }
                   Relationships: [
                     {

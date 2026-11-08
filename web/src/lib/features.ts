@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 
 // Feature switches set by the super admin (/admin, Lab tab): off, lab
 // practices only, or everyone, with per-practice exceptions.
-export type FeatureKey = "messages" | "patient_diary" | "patient_booking";
+export type FeatureKey = "messages" | "patient_diary" | "patient_booking" | "ai_document_import";
 
 // If the switches can't be read, keep everything that was live on.
 const LIVE: FeatureKey[] = ["messages", "patient_diary", "patient_booking"];

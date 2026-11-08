@@ -11,7 +11,7 @@ import { LabForm } from "../forms";
 
 // Lab results grouped by test: latest value against the typical range, the
 // trend, and the history.
-export async function LabsTab({ patientId, today }: { patientId: string; today: string }) {
+export async function LabsTab({ patientId, today, importButton }: { patientId: string; today: string; importButton?: React.ReactNode }) {
   const supabase = await createClient();
   const { data: results } = await supabase.from("lab_results").select("*").eq("patient_id", patientId).order("measured_on", { ascending: false }).order("created_at", { ascending: false });
 
@@ -28,9 +28,12 @@ export async function LabsTab({ patientId, today }: { patientId: string; today: 
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted">Typical adult ranges flag values to look at. Each lab has its own ranges.</p>
-        <Dialog label="Add result" icon={<Plus className="size-4" />} title="Add lab result">
-          <LabForm action={addLabResult.bind(null, patientId)} today={today} />
-        </Dialog>
+        <div className="flex flex-wrap gap-2">
+          {importButton}
+          <Dialog label="Add result" icon={<Plus className="size-4" />} title="Add lab result">
+            <LabForm action={addLabResult.bind(null, patientId)} today={today} />
+          </Dialog>
+        </div>
       </div>
       {!tests.length ? (
         <Card className="mt-4">

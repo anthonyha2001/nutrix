@@ -89,6 +89,19 @@ Phase 2 added:
     are added under it, marked as theirs.
   - Ticked allergies are added, and the reported weight is recorded.
   - Tests: `supabase/tests/clinical_tools_test.sql`.
+- **Import lab results and body composition** (Import buttons on the Labs and Measurements tabs). Nothing is saved
+  until the dietitian approves it, beside the original document.
+  - **Without AI, free:** InBody/LookinBody and Tanita exports (CSV or Excel), digital lab PDFs and InBody result
+    sheets as PDF.
+  - **Readers** (`web/src/lib/import/`): every value is a number printed on the line it quotes. Units are converted
+    only with fixed factors, implausible values and limits ("<150") are flagged, and dates are read by their label
+    (birth dates ignored).
+  - **Name check:** the patient's name is looked for on the document; if it is missing, saving requires a "this is
+    theirs" tick. Rows for other people in a device export are left unticked.
+  - **Photos and scans:** read by AI only when the "AI reading of photos and scans" switch is on in /admin and
+    `ANTHROPIC_API_KEY` is set. Claude Haiku 5.5 is used by default (about 0.2 US cents a document), and Claude
+    Opus 5.5 only on "Read again with the stronger AI". The AI only transcribes the printed rows; the same
+    deterministic readers then parse and check them, and AI-read values always start unticked.
 - **Package renewal:** a prompt on the appointment, in consultation mode and in billing when a package is on its
   last consultation or ends within 14 days. Owners and assistants renew it in one step.
 
