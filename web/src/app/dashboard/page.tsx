@@ -12,17 +12,18 @@ export default async function OverviewPage() {
   const supabase = await createClient();
   // RLS scopes this: the owner and assistants count the whole practice, a
   // dietitian counts their own patients.
-  const { count: activePatients } = await supabase
-    .from("patients")
-    .select("*", { count: "exact", head: true })
-    .eq("practice_id", membership.practiceId)
-    .is("archived_at", null);
+  const [{ count: activePatients }, { count: activePlans }, { count: drafts }] = await Promise.all([
+    supabase.from("patients").select("*", { count: "exact", head: true }).eq("practice_id", membership.practiceId).is("archived_at", null),
+    supabase.from("meal_plans").select("*", { count: "exact", head: true }).eq("status", "active"),
+    supabase.from("meal_plans").select("*", { count: "exact", head: true }).eq("status", "draft"),
+  ]);
+  const clinical = membership.role !== "assistant";
 
   const firstName = (viewer.fullName || "").split(" ")[0];
   const stats = [
     { label: "Active patients", value: String(activePatients ?? 0) },
-    { label: "Appointments today", value: null },
-    { label: "Need attention", value: null },
+    { label: "Active meal plans", value: clinical ? String(activePlans ?? 0) : null },
+    { label: "Drafts to finish", value: clinical ? String(drafts ?? 0) : null },
     { label: "Revenue this month", value: null },
   ];
 

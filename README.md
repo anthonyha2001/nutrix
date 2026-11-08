@@ -8,19 +8,40 @@ The operating system for dietitians. A sibling of Gymix: different product, same
 | **Nutrix Patient** | Patient app, delivered first as an installable web app (like the Gymix member portal) | `web/src/app/patient` |
 | **Nutrix Core** | Supabase: Postgres schema, row-level security, nutrition database, automation | `supabase/` |
 
-## Status: skeleton
+## Status: Phase 1 built
 
 What works today:
 
-- Sign up, log in, log out. Signed-out users are redirected away from app pages.
-- Create a practice (you become its owner).
-- Staff invites and patient records are claimed automatically when that email signs up or logs in.
-- Dashboard shell (sidebar, role-aware navigation) with one page per module. The Overview counts real active patients.
-- Patient app shell (bottom tab bar, "More" sheet) with one screen per section.
-- Foundation schema with access rules, tested (`supabase/tests/rls_test.sql`).
+- **Accounts:** sign up, log in, practice onboarding. Staff invites and patient records are claimed automatically
+  when that email signs up.
+- **Patients:** list with search and archive, add or edit (dialogs), assign a dietitian. Each patient file has
+  tabs for an overview (weight, change, BMI, current plan, latest note), meal plans, measurements (weight chart),
+  consultation notes, and health history with structured allergies.
+- **Meal plans:** a builder for breakfast, lunch, dinner and snacks, with one or many days. It has food search,
+  amounts in grams or servings, approved swaps, daily targets with live totals, and allergy warnings. Plans start as
+  drafts and are then given to the patient. The previous plan becomes read-only, and any plan can be saved as a
+  template.
+- **Templates:** a private library (meal, daily, weekly, program) with search, type tabs, favourites, duplicate and
+  delete. A plan made from a template is a copy.
+- **Foods & recipes:** the USDA FoodData Central library (7,283 foods, public domain), 10 Lebanese dishes, and the
+  practice's own foods (from labels) and recipes, whose nutrition is computed from their ingredients.
+- **Team and settings:** invite dietitians or assistants, change roles, and edit practice details.
+- **Patient app:** Today (that day's meals with totals) and Plan (the whole plan, including approved swaps).
+- **Tests:** `supabase/tests/rls_test.sql` and `phase1_test.sql` (access rules, snapshots, template privacy).
+  A browser walkthrough of the whole flow passes (script kept outside the repo).
 
-Every other page is a placeholder that states what it will do and in which phase. The list lives in one file,
-`web/src/lib/modules.ts` (patient side: `web/src/lib/patient-app.ts`), so the sidebar and the roadmap stay in sync.
+Not built yet: Appointments, Messages, Billing and Reports are placeholders (`web/src/lib/modules.ts`). Diary,
+Progress, Messages and Profile in the patient app are placeholders too.
+
+### Known gaps in Phase 1
+
+- **Missing Lebanese staples:** USDA has no labneh, kaak or local cheeses. Until Nutrix has its own Lebanese product
+  database, dietitians add these as practice foods from their labels. Nothing is aliased to an approximate food.
+- **Lebanese dishes to review:** the 10 dishes are typical home recipes, and the cooked weights of meat dishes and
+  soup are assumptions stated on each recipe. They should be reviewed by a dietitian before launch.
+- **Allergen tags are approximate:** tags on USDA foods are matched from food names. They help, but don't
+  guarantee anything. Warnings cover the nine listed allergens only.
+- **Patient timezone:** the patient app uses Beirut time to decide which day of the plan is "today".
 
 ## Design DNA (shared with Gymix)
 
@@ -57,8 +78,9 @@ Ports are chosen so Nutrix runs beside Gymix: Supabase on 544xx (Gymix uses 543x
 (3000 and 3200 are taken).
 
 ```bash
-# 1. Database (Docker must be running), from the repo root
-npx supabase start -x studio,logflare,vector,realtime,imgproxy,postgres-meta,edge-runtime,supavisor
+# 1. Database (Docker must be running), from the repo root. Same CLI version as Gymix, so the Docker images are shared.
+#    Migrations include the USDA food library and Lebanese dishes.
+npx supabase@3.0.0 start -x studio,logflare,vector,realtime,imgproxy,postgres-meta,edge-runtime,supavisor
 # 2. Web app
 cd web
 cp .env.example .env.local     # paste the anon key printed by `supabase start`
@@ -86,11 +108,11 @@ MSYS_NO_PATHCONV=1 bash supabase/tests/run_tests.sh
 
 ## Roadmap
 
-### Phase 1: Core practice (next)
+### Phase 1: Core practice (built)
 
 Patients, meal plans, private templates, foods and recipes, team, settings.
 
-Decisions to build in from the start:
+How the decisions were built:
 
 - **Plans are snapshots.** Assigning a template copies its meals into the patient's plan, with each food's nutrients
   copied in. Editing a template, or correcting a food, never changes an assigned plan. A plan records which template

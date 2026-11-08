@@ -24,7 +24,7 @@ export function LoginForm({ next }: { next?: string }) {
   );
 }
 
-export function SignupForm({ next }: { next?: string }) {
+export function SignupForm({ next, email }: { next?: string; email?: string }) {
   const [state, action, pending] = useActionState<AuthFormState, FormData>(signUp, {});
 
   if (state.message) return <Alert tone="success">{state.message}</Alert>;
@@ -36,7 +36,7 @@ export function SignupForm({ next }: { next?: string }) {
         <input name="full_name" autoComplete="name" required minLength={2} maxLength={120} className={inputClass} />
       </Field>
       <Field label="Email" hint="Patients: use the email your dietitian has on file.">
-        <input name="email" type="email" autoComplete="email" required defaultValue={state.email} className={inputClass} />
+        <input name="email" type="email" autoComplete="email" required defaultValue={state.email ?? email} className={inputClass} />
       </Field>
       <Field label="Password" hint="At least 8 characters.">
         <input name="password" type="password" autoComplete="new-password" required minLength={8} className={inputClass} />
