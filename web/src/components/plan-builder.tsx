@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { AlertTriangle, ArrowDown, ArrowUp, ChevronDown, ChevronRight, Copy, Plus, Repeat, Sparkles, Trash2, Undo2, X } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, ChevronDown, ChevronRight, Copy, Plus, GripVertical, Repeat, Sparkles, Trash2, Undo2, X } from "lucide-react";
 import { GOALS, guessGoal, missingForTargets, suggestTargets, type Goal, type TargetProfile } from "@/lib/energy";
 import { useConfirm } from "@/components/confirm";
 import { planChecks } from "@/lib/plan-checks";
 import { suggestSwaps, type SwapSuggestion } from "@/app/food-actions";
+import { canDrop, DRAG_ITEM, FavoriteButton, FoodShelf, itemToFood, QuickAdd, readDrop, rememberFood, WeekGrid, type ItemRef } from "@/components/plan-builder-tools";
 import { FoodSearch } from "@/components/food-search";
 import { MacroSummary } from "@/components/macro-summary";
 import { showToast } from "@/components/toaster";
@@ -136,6 +137,10 @@ export function PlanBuilder({
 
   const checks = mode === "plan" && !readOnly ? planChecks(days, meta.targets, patientAllergies, give?.label.replace(/^Give to /, "")) : [];
   const [checksOpen, setChecksOpen] = useState(true);
+  // Week view: all days side by side, with drag and drop between meals and days.
+  const [view, setView] = useState<"day" | "week">("day");
+  // The meal that one-click favourites go to (the last one worked on).
+  const [targetKey, setTargetKey] = useState<string | null>(null);
 
   const updateDay = (fn: (d: PlanDay) => PlanDay) => setDays((all) => all.map((d, i) => (i === dayIndex ? fn(d) : d)));
   const updateMeal = (key: string, fn: (m: PlanMeal) => PlanMeal) => updateDay((d) => ({ ...d, meals: d.meals.map((m) => (m.key === key ? fn(m) : m)) }));
@@ -206,6 +211,55 @@ export function PlanBuilder({
     );
     showToast(`${label} copied to all days`);
   }
+
+  const freshItem = (it: PlanItem): PlanItem => ({ ...it, uid: newKey(), alternatives: it.alternatives?.map((a) => ({ ...a, uid: newKey() })) });
+
+  function addItems(dayAt: number, mealKey: string, items: PlanItem[]) {
+    setDays((all) => all.map((d, i) => (i === dayAt ? { ...d, meals: d.meals.map((m) => (m.key === mealKey ? { ...m, items: [...m.items, ...items] } : m)) } : d)));
+  }
+
+  // Move a food to another meal or day (or copy it, holding Ctrl).
+  function moveItem(from: ItemRef, toDay: number, toMeal: string, copy: boolean) {
+    if (!copy && from.day === toDay && from.meal === toMeal) return;
+    setDays((all) => {
+      const item = all[from.day]?.meals.find((m) => m.key === from.meal)?.items[from.index];
+      if (!item) return all;
+      return all.map((d, di) => ({
+        ...d,
+        meals: d.meals.map((m) => {
+          let items = m.items;
+          if (!copy && di === from.day && m.key === from.meal) items = items.filter((_, j) => j !== from.index);
+          if (di === toDay && m.key === toMeal) items = [...items, copy ? freshItem(item) : item];
+          return items === m.items ? m : { ...m, items };
+        }),
+      }));
+    });
+  }
+
+  function removeItemAt(ref: ItemRef) {
+    setDays((all) => all.map((d, di) => (di !== ref.day ? d : { ...d, meals: d.meals.map((m) => (m.key === ref.meal ? { ...m, items: m.items.filter((_, j) => j !== ref.index) } : m)) })));
+  }
+
+  // A whole meal dragged onto another day: added there as a copy.
+  function copyMealToDay(fromDay: number, mealKey: string, toDay: number) {
+    const meal = days[fromDay]?.meals.find((m) => m.key === mealKey);
+    if (!meal) return;
+    setDays((all) => all.map((d, di) => (di === toDay ? { ...d, meals: [...d.meals, { ...meal, key: newKey(), items: meal.items.map(freshItem) }] } : d)));
+    showToast(`${meal.name || SLOT_LABELS[meal.slot]} copied to ${days[toDay].label}`);
+  }
+
+  function dropOnMeal(e: React.DragEvent, dayAt: number, mealKey: string) {
+    const d = readDrop(e);
+    if (!d) return;
+    e.preventDefault();
+    if (d.food) {
+      rememberFood(d.food);
+      addItems(dayAt, mealKey, [defaultItem(d.food)]);
+    } else if (d.item) moveItem(d.item, dayAt, mealKey, d.copy);
+    setTargetKey(mealKey);
+  }
+
+  const target = day.meals.find((m) => m.key === targetKey) ?? day.meals[0];
 
   function moveMeal(key: string, dir: -1 | 1) {
     updateDay((d) => {
@@ -316,6 +370,38 @@ export function PlanBuilder({
       )}
 
       {/* Days */}
+      {!singleDay && days.length > 1 && (
+        <div className="flex gap-1" role="radiogroup" aria-label="View">
+          {(["day", "week"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              role="radio"
+              aria-checked={view === v}
+              onClick={() => setView(v)}
+              className={`h-8 rounded-lg px-3 text-xs font-medium ${view === v ? "bg-ink text-white" : "bg-canvas text-ink/80 hover:text-ink"}`}
+            >
+              {v === "day" ? "Day view" : "Week view"}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {view === "week" && days.length > 1 && (
+        <WeekGrid
+          days={days}
+          onOpenDay={(i) => {
+            setDayIndex(i);
+            setView("day");
+          }}
+          onDropOnMeal={dropOnMeal}
+          onCopyMeal={copyMealToDay}
+          onRemoveItem={removeItemAt}
+        />
+      )}
+
+      {(view === "day" || days.length <= 1) && (
+      <>
       {!singleDay && (
         <div className="flex flex-wrap items-center gap-1.5">
           {days.map((d, i) => (
@@ -360,12 +446,19 @@ export function PlanBuilder({
         <MacroSummary totals={dayMacros(day)} targets={mode === "plan" ? meta.targets : undefined} />
       </div>
 
+      {/* One-click favourites and recent foods */}
+      {!readOnly && target && <FoodShelf target={target.name || SLOT_LABELS[target.slot]} onAdd={(food) => { rememberFood(food); addItems(dayIndex, target.key, [defaultItem(food)]); }} />}
+
       {/* Meals */}
       <div className="space-y-3" key={revision}>
         {day.meals.map((meal, mi) => (
           <MealCard
             key={meal.key}
             meal={meal}
+            dayIndex={dayIndex}
+            selected={!readOnly && target?.key === meal.key}
+            onSelect={() => setTargetKey(meal.key)}
+            onDropHere={(e) => dropOnMeal(e, dayIndex, meal.key)}
             first={mi === 0}
             last={mi === day.meals.length - 1}
             canRemove={kind !== "meal" || mode === "plan"}
@@ -390,6 +483,8 @@ export function PlanBuilder({
           </button>
         )}
       </div>
+      </>
+      )}
 
       {mode === "plan" && (
         <Field label="Notes for the patient" optional>
@@ -456,6 +551,10 @@ export function PlanBuilder({
 
 function MealCard({
   meal,
+  dayIndex,
+  selected,
+  onSelect,
+  onDropHere,
   first,
   last,
   canRemove,
@@ -476,13 +575,36 @@ function MealCard({
   onMove: (dir: -1 | 1) => void;
   onRemove: () => void;
   onCopyToAll?: () => void;
+  dayIndex: number;
+  selected: boolean;
+  onSelect: () => void;
+  onDropHere: (e: React.DragEvent) => void;
 }) {
   const [adding, setAdding] = useState(meal.items.length === 0 && !readOnly);
+  const [typing, setTyping] = useState(false);
+  const [over, setOver] = useState(false);
   const totals = mealMacros(meal);
   const setItem = (i: number, fn: (it: PlanItem) => PlanItem) => onChange((m) => ({ ...m, items: m.items.map((it, j) => (j === i ? fn(it) : it)) }));
 
   return (
-    <div className="rounded-xl border border-line bg-surface">
+    <div
+      onFocusCapture={onSelect}
+      onPointerDown={onSelect}
+      onDragOver={(e) => {
+        if (!readOnly && canDrop(e)) {
+          e.preventDefault();
+          setOver(true);
+        }
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(false);
+      }}
+      onDrop={(e) => {
+        setOver(false);
+        onDropHere(e);
+      }}
+      className={`rounded-xl border bg-surface transition-colors ${over ? "border-ink bg-ink/5" : selected ? "border-ink/40" : "border-line"}`}
+    >
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
         <select
           value={meal.slot}
@@ -542,6 +664,7 @@ function MealCard({
           <ItemRow
             key={item.uid ?? `${item.food_id}-${i}`}
             item={item}
+            dragRef={readOnly ? undefined : { day: dayIndex, meal: meal.key, index: i }}
             readOnly={readOnly}
             patientAllergies={patientAllergies}
             onChange={(fn) => setItem(i, fn)}
@@ -552,19 +675,37 @@ function MealCard({
 
       {!readOnly && (
         <div className="px-4 py-3">
-          {adding ? (
+          {typing ? (
+            <QuickAdd onAdd={(items) => onChange((m) => ({ ...m, items: [...m.items, ...items] }))} onDone={() => setTyping(false)} />
+          ) : adding ? (
             <div className="space-y-2">
-              <FoodSearch autoFocus={meal.items.length > 0} onPick={(f) => onChange((m) => ({ ...m, items: [...m.items, defaultItem(f)] }))} />
-              {meal.items.length > 0 && (
-                <button type="button" onClick={() => setAdding(false)} className="text-sm text-muted hover:text-ink">
-                  Done adding
+              <FoodSearch
+                autoFocus={meal.items.length > 0}
+                onPick={(f) => {
+                  rememberFood(f);
+                  onChange((m) => ({ ...m, items: [...m.items, defaultItem(f)] }));
+                }}
+              />
+              <div className="flex flex-wrap gap-3">
+                <button type="button" onClick={() => setTyping(true)} className="text-sm font-medium text-brand-strong hover:underline">
+                  Type a list instead
                 </button>
-              )}
+                {meal.items.length > 0 && (
+                  <button type="button" onClick={() => setAdding(false)} className="text-sm text-muted hover:text-ink">
+                    Done adding
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
-            <button type="button" onClick={() => setAdding(true)} className="inline-flex items-center gap-1.5 text-sm font-medium text-ink/80 hover:text-ink">
-              <Plus className="size-4" /> Add food
-            </button>
+            <span className="flex flex-wrap gap-4">
+              <button type="button" onClick={() => setAdding(true)} className="inline-flex items-center gap-1.5 text-sm font-medium text-ink/80 hover:text-ink">
+                <Plus className="size-4" /> Add food
+              </button>
+              <button type="button" onClick={() => setTyping(true)} className="text-sm text-muted hover:text-ink">
+                Type a list
+              </button>
+            </span>
           )}
         </div>
       )}
@@ -574,6 +715,7 @@ function MealCard({
 
 function ItemRow({
   item,
+  dragRef,
   readOnly,
   patientAllergies,
   onChange,
@@ -586,6 +728,8 @@ function ItemRow({
   onChange: (fn: (it: PlanItem) => PlanItem) => void;
   onRemove: () => void;
   isSwap?: boolean;
+  // Set in day view: the row can be dragged to another meal.
+  dragRef?: ItemRef;
 }) {
   const [swapsOpen, setSwapsOpen] = useState(false);
   const m = itemMacros(item);
@@ -596,6 +740,19 @@ function ItemRow({
   return (
     <li className={isSwap ? "py-2" : "px-4 py-3"}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        {dragRef && !isSwap && (
+          <span
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.setData(DRAG_ITEM, JSON.stringify(dragRef));
+              e.dataTransfer.effectAllowed = "copyMove";
+            }}
+            title="Drag to another meal (hold Ctrl to copy)"
+            className="-ml-2 cursor-grab text-muted active:cursor-grabbing"
+          >
+            <GripVertical className="size-4" />
+          </span>
+        )}
         <div className="min-w-0 flex-1 basis-56">
           <p className="text-sm font-medium">{item.name}</p>
           <p className="text-xs text-muted tabular-nums">
@@ -627,6 +784,7 @@ function ItemRow({
                 {swapsOpen ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
               </button>
             )}
+            {!isSwap && <FavoriteButton food={itemToFood(item)} />}
             <IconButton label={`Remove ${item.name}`} onClick={onRemove} danger>
               <X className="size-4" />
             </IconButton>

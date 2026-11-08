@@ -200,3 +200,17 @@ export async function saveOnlineFood(code: string): Promise<FoodHit | null> {
   const { data: food } = await supabase.from("foods").select("*").eq("id", id).maybeSingle();
   return food ? (await withServings([food]))[0] : null;
 }
+
+// Quick typing: the best matches for several typed names at once (up to 5 each).
+export async function quickFindFoods(names: string[]): Promise<FoodHit[][]> {
+  await requireViewer();
+  const supabase = await createClient();
+  const list = names.slice(0, 20).map((n) => n.trim().slice(0, 80));
+  return Promise.all(
+    list.map(async (q) => {
+      if (q.length < 2) return [];
+      const { data } = await supabase.rpc("search_foods", { p_query: q, p_limit: 5 });
+      return withServings(data ?? []);
+    }),
+  );
+}
