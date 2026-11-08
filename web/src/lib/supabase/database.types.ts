@@ -165,19 +165,21 @@ isOneToOne: false
                     "attribution"?: string,"food_count"?: number,"id"?: string,"imported_at"?: string | null,"licence"?: string,"licence_url"?: string | null,"name"?: string,"publisher"?: string,"share_alike"?: boolean,"url"?: string | null,"version"?: string | null
                   }
                   Relationships: [
+                    
                   ]
-                },"food_translations": {
+                },"food_import_stage": {
                   Row: {
-                    "food_id": string,"id": string,"lang": string,"name": string,"practice_id": string | null,"updated_at": string,"updated_by": string | null
+                    "allergens": (string)[],"barcode": string | null,"brand": string | null,"branded": boolean,"carbs_g": number | null,"category": string,"dataset": string,"fat_g": number | null,"fiber_g": number | null,"kcal": number | null,"name": string,"protein_g": number | null,"servings": NonNullable<Json>,"sodium_mg": number | null,"source_ref": string,"sugar_g": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "food_id": string,"id"?: string,"lang": string,"name": string,"practice_id"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                    "allergens"?: (string)[],"barcode"?: string | null,"brand"?: string | null,"branded": boolean,"carbs_g"?: number | null,"category": string,"dataset": string,"fat_g"?: number | null,"fiber_g"?: number | null,"kcal"?: number | null,"name": string,"protein_g"?: number | null,"servings"?: NonNullable<Json>,"sodium_mg"?: number | null,"source_ref": string,"sugar_g"?: number | null
                   }
                   Update: {
-                    "food_id"?: string,"id"?: string,"lang"?: string,"name"?: string,"practice_id"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                    "allergens"?: (string)[],"barcode"?: string | null,"brand"?: string | null,"branded"?: boolean,"carbs_g"?: number | null,"category"?: string,"dataset"?: string,"fat_g"?: number | null,"fiber_g"?: number | null,"kcal"?: number | null,"name"?: string,"protein_g"?: number | null,"servings"?: NonNullable<Json>,"sodium_mg"?: number | null,"source_ref"?: string,"sugar_g"?: number | null
                   }
                   Relationships: [
+                    
                   ]
                 },"food_servings": {
                   Row: {
@@ -196,6 +198,38 @@ isOneToOne: false
       columns: ["food_id"]
 isOneToOne: false
       referencedRelation: "foods"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"food_translations": {
+                  Row: {
+                    "food_id": string,"id": string,"lang": string,"name": string,"practice_id": string | null,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "food_id": string,"id"?: string,"lang": string,"name": string,"practice_id"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "food_id"?: string,"id"?: string,"lang"?: string,"name"?: string,"practice_id"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "food_translations_food_id_fkey"
+      columns: ["food_id"]
+isOneToOne: false
+      referencedRelation: "foods"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "food_translations_practice_id_fkey"
+      columns: ["practice_id"]
+isOneToOne: false
+      referencedRelation: "practices"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "food_translations_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
                   ]
@@ -218,6 +252,12 @@ isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "foods_dataset_fkey"
+      columns: ["dataset"]
+isOneToOne: false
+      referencedRelation: "food_datasets"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "foods_practice_id_fkey"
       columns: ["practice_id"]
 isOneToOne: false
@@ -237,6 +277,19 @@ isOneToOne: false
                     "answers"?: Json | null,"created_at"?: string,"created_by"?: string | null,"expires_at"?: string,"id"?: string,"patient_id"?: string,"submitted_at"?: string | null,"token"?: string
                   }
                   Relationships: [
+                    {
+      foreignKeyName: "intake_forms_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "intake_forms_patient_id_fkey"
+      columns: ["patient_id"]
+isOneToOne: false
+      referencedRelation: "patients"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"invites": {
                   Row: {
@@ -321,6 +374,12 @@ isOneToOne: false
                   }
                   Relationships: [
                     {
+      foreignKeyName: "lab_results_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "lab_results_patient_id_fkey"
       columns: ["patient_id"]
 isOneToOne: false
@@ -357,6 +416,26 @@ isOneToOne: false
       columns: ["source_template_id"]
 isOneToOne: false
       referencedRelation: "templates"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"meal_reminders_sent": {
+                  Row: {
+                    "day": string,"meal_key": string,"patient_id": string,"sent_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "day": string,"meal_key": string,"patient_id": string,"sent_at"?: string
+                  }
+                  Update: {
+                    "day"?: string,"meal_key"?: string,"patient_id"?: string,"sent_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "meal_reminders_sent_patient_id_fkey"
+      columns: ["patient_id"]
+isOneToOne: false
+      referencedRelation: "patients"
       referencedColumns: ["id"]
     }
                   ]
@@ -626,6 +705,20 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"platform_config": {
+                  Row: {
+                    "key": string,"value": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "key": string,"value": string
+                  }
+                  Update: {
+                    "key"?: string,"value"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"practice_feature_overrides": {
                   Row: {
                     "enabled": boolean,"feature_key": string,"practice_id": string
@@ -694,17 +787,37 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "created_at": string,"email": string,"full_name": string,"id": string,"phone": string | null,"updated_at": string
+                    "created_at": string,"email": string,"full_name": string,"id": string,"locale": string | null,"phone": string | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"email"?: string,"full_name"?: string,"id": string,"phone"?: string | null,"updated_at"?: string
+                    "created_at"?: string,"email"?: string,"full_name"?: string,"id": string,"locale"?: string | null,"phone"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "created_at"?: string,"email"?: string,"full_name"?: string,"id"?: string,"phone"?: string | null,"updated_at"?: string
+                    "created_at"?: string,"email"?: string,"full_name"?: string,"id"?: string,"locale"?: string | null,"phone"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     
+                  ]
+                },"push_subscriptions": {
+                  Row: {
+                    "auth": string,"created_at": string,"endpoint": string,"p256dh": string,"patient_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "auth": string,"created_at"?: string,"endpoint": string,"p256dh": string,"patient_id": string,"user_id": string
+                  }
+                  Update: {
+                    "auth"?: string,"created_at"?: string,"endpoint"?: string,"p256dh"?: string,"patient_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "push_subscriptions_patient_id_fkey"
+      columns: ["patient_id"]
+isOneToOne: false
+      referencedRelation: "patients"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"recipe_ingredients": {
                   Row: {
@@ -901,6 +1014,29 @@ isOneToOne: false
 "duplicate_template":
 { Args: { "p_id": string }; Returns: string
                            },
+"food_import_apply":
+{ Args: { "p_dataset": string,"p_version": string }; Returns: number
+                           },
+"food_save_online":
+{ Args: { "p": Json }; Returns: string
+                           },
+"food_search_text":
+{ Args: { "p_aliases": (string)[],"p_brand": string,"p_name": string }; Returns: string
+                           },
+"intake_create":
+{ Args: { "p_patient_id": string }; Returns: string
+                           },
+"intake_get":
+{ Args: { "p_token": string }; Returns: {
+              "first_name": string,"practice_name": string,"status": string
+            }[]
+                           },
+"intake_lines":
+{ Args: { "a": Json,"keys": (string)[],"labels": (string)[] }; Returns: string
+                           },
+"intake_submit":
+{ Args: { "p_answers": Json,"p_token": string }; Returns: undefined
+                           },
 "is_billing":
 { Args: { "p_practice_id": string }; Returns: boolean
                            },
@@ -976,29 +1112,14 @@ isOneToOne: false
 "save_food":
 { Args: { "p_allergens"?: (string)[],"p_brand"?: string,"p_carbs"?: number,"p_category"?: string,"p_fat"?: number,"p_fiber"?: number,"p_id"?: string,"p_kcal"?: number,"p_name"?: string,"p_practice_id": string,"p_protein"?: number,"p_servings"?: Json,"p_sodium"?: number,"p_sugar"?: number }; Returns: string
                            },
+"save_food_translation":
+{ Args: { "p_food_id": string,"p_lang": string,"p_name": string,"p_practice_id": string }; Returns: undefined
+                           },
 "save_meal_plan":
 { Args: { "p_content"?: Json,"p_ends_on"?: string,"p_id"?: string,"p_name"?: string,"p_notes"?: string,"p_patient_id": string,"p_starts_on"?: string,"p_targets"?: Json }; Returns: string
                            },
 "save_recipe":
 { Args: { "p_category"?: string,"p_id"?: string,"p_ingredients"?: Json,"p_instructions"?: string,"p_name"?: string,"p_practice_id": string,"p_servings"?: number,"p_yield_g"?: number }; Returns: string
-                           },
-"intake_create":
-{ Args: { "p_patient_id": string }; Returns: string
-                           },
-"intake_get":
-{ Args: { "p_token": string }; Returns: { "first_name": string; "practice_name": string; "status": string }[]
-                           },
-"intake_submit":
-{ Args: { "p_answers": Json; "p_token": string }; Returns: undefined
-                           },
-"food_import_apply":
-{ Args: { "p_dataset": string,"p_version": string }; Returns: number
-                           },
-"save_food_translation":
-{ Args: { "p_food_id": string; "p_lang": string; "p_name": string; "p_practice_id": string }; Returns: undefined
-                           },
-"food_save_online":
-{ Args: { "p": Json }; Returns: string
                            },
 "save_template":
 { Args: { "p_category"?: string,"p_content"?: Json,"p_description"?: string,"p_id"?: string,"p_kind"?: Database["public"]['Enums']["template_kind"],"p_name"?: string,"p_practice_id": string }; Returns: string

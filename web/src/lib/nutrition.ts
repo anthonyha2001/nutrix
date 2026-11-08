@@ -25,6 +25,8 @@ export type FoodHit = {
   // Set for an Open Food Facts product found online and not saved yet (its
   // barcode). Picking it saves it first, then the saved food is used.
   online?: string;
+  // The original name, shown under a translated one.
+  alt_name?: string;
 };
 
 // One food in a meal, as edited in the builder.

@@ -1,23 +1,27 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ShoppingBasket } from "lucide-react";
 import { MacroSummary } from "@/components/macro-summary";
 import { MealDay } from "@/components/meal-day";
 import { Card } from "@/components/ui";
-import { formatDate } from "@/lib/format";
-import { activePlan } from "@/lib/patient-plan";
+import { dayName, formatDateIn } from "@/lib/patient-i18n";
+import { patientText } from "@/lib/patient-lang";
+import { localizedPlan } from "@/lib/patient-plan";
 import { requirePatient } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Plan" };
 
 export default async function PlanPage() {
-  const { link } = await requirePatient();
-  const plan = await activePlan(link.patientId);
+  const { viewer, link } = await requirePatient();
+  const { lang, t } = await patientText(viewer);
+  const { plan, recipes, recipeNames } = await localizedPlan(link.patientId, lang);
 
   if (!plan) {
     return (
       <div className="stagger space-y-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Plan</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t.plan.title}</h1>
         <Card className="rounded-2xl p-5">
-          <p className="text-sm text-muted">Your dietitian hasn&apos;t shared a meal plan yet.</p>
+          <p className="text-sm text-muted">{t.plan.none}</p>
         </Card>
       </div>
     );
@@ -27,34 +31,42 @@ export default async function PlanPage() {
   return (
     <div className="stagger space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{plan.name}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          <bdi>{plan.name}</bdi>
+        </h1>
         <p className="text-sm text-muted">
-          {plan.starts_on ? `From ${formatDate(plan.starts_on)}` : ""}
-          {plan.ends_on ? ` to ${formatDate(plan.ends_on)}` : ""}
+          {plan.starts_on ? t.plan.from(formatDateIn(plan.starts_on, lang)) : ""}
+          {plan.ends_on ? t.plan.to(formatDateIn(plan.ends_on, lang)) : ""}
         </p>
       </div>
       {plan.content.totals && (
         <Card className="rounded-2xl p-5">
-          <p className="mb-3 text-sm font-medium">{multi ? "An average day" : "Each day"}</p>
-          <MacroSummary totals={plan.content.totals} targets={plan.targets} compact neutral />
+          <p className="mb-3 text-sm font-medium">{multi ? t.plan.average : t.plan.each}</p>
+          <MacroSummary totals={plan.content.totals} targets={plan.targets} compact neutral lang={lang} />
         </Card>
       )}
+      <Link href="/patient/shopping" className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-sm font-medium transition hover:border-ink/20">
+        <ShoppingBasket className="size-5 text-brand-strong" />
+        {t.plan.shoppingLink}
+      </Link>
       {multi ? (
         plan.content.days.map((d, i) => (
           <details key={i} open={i === 0} className="group rounded-2xl border border-line bg-surface">
             <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-4 font-semibold">
-              {d.label}
-              <span className="text-sm font-normal text-muted tabular-nums">{d.totals.kcal} kcal</span>
+              {dayName(d.label, lang)}
+              <span className="text-sm font-normal text-muted tabular-nums">
+                {d.totals.kcal} {t.macros.kcal}
+              </span>
             </summary>
             <div className="px-3 pb-3">
-              <MealDay day={d} />
+              <MealDay day={d} lang={lang} recipes={recipes} recipeNames={recipeNames} />
             </div>
           </details>
         ))
       ) : (
-        <MealDay day={plan.content.days[0]} />
+        <MealDay day={plan.content.days[0]} lang={lang} recipes={recipes} recipeNames={recipeNames} />
       )}
-      <p className="text-center text-xs text-muted">Swaps marked &quot;Or&quot; are approved by your dietitian.</p>
+      <p className="text-center text-xs text-muted">{t.plan.swapsNote}</p>
     </div>
   );
 }

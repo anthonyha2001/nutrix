@@ -21,7 +21,7 @@
   --color-carbs: #e0a33a;
   --color-fat: #c4577a;
 
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-geist-sans), var(--font-arabic), ui-sans-serif, system-ui, sans-serif;
 }
 
 body {

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus, Search, Smartphone } from "lucide-react";
 import { Dialog } from "@/components/dialog";
+import { DoubleClickRow } from "@/components/double-click-row";
 import { RowMenu } from "@/components/row-menu";
 import { Badge, Card, EmptyState, inputClass, PageHeader } from "@/components/ui";
 import { ageOn, formatDate, todayIn } from "@/lib/format";
@@ -68,7 +69,7 @@ export default async function PatientsPage({ searchParams }: PageProps<"/dashboa
               const age = ageOn(p.date_of_birth, today);
               const dietitian = p.profiles?.full_name || p.profiles?.email;
               return (
-                <li key={p.id} className="flex items-center gap-3 px-5 py-3.5">
+                <DoubleClickRow key={p.id} href={`/dashboard/patients/${p.id}`} className="flex items-center gap-3 px-5 py-3.5">
                   <span className="grid size-10 shrink-0 place-items-center rounded-full bg-canvas text-sm font-semibold">
                     {p.full_name
                       .split(/\s+/)
@@ -120,7 +121,7 @@ export default async function PatientsPage({ searchParams }: PageProps<"/dashboa
                       },
                     ]}
                   />
-                </li>
+                </DoubleClickRow>
               );
             })}
           </ul>

@@ -38,14 +38,29 @@ async function withServings(foods: FoodRow[]): Promise<FoodHit[]> {
 
 // Food search for the plan builder, the diary and the recipe editor. Row-level
 // security limits results to the shared library and the caller's practice.
-export async function searchFoods(query: string, limit = 25): Promise<FoodHit[]> {
+export async function searchFoods(query: string, limit = 25, lang: "en" | "ar" = "en"): Promise<FoodHit[]> {
   // Staff and patients; row-level security limits what each can find.
   await requireViewer();
   const q = query.trim().slice(0, 80);
   if (q.length < 2) return [];
   const supabase = await createClient();
+  // Arabic typing searches the confirmed Arabic names.
+  if (/[؀-ۿ]/.test(q)) {
+    const { data: names } = await supabase.from("food_translations").select("food_id, name").eq("lang", "ar").ilike("name", `%${q.replace(/[%_\]/g, "")}%`).limit(limit);
+    const ids = [...new Set((names ?? []).map((n) => n.food_id))];
+    if (!ids.length) return [];
+    const { data: foods } = await supabase.from("foods").select("*").in("id", ids).is("archived_at", null);
+    const hits = await withServings(foods ?? []);
+    return hits.map((h) => ({ ...h, alt_name: h.name, name: names!.find((n) => n.food_id === h.id)?.name ?? h.name }));
+  }
   const { data: foods } = await supabase.rpc("search_foods", { p_query: q, p_limit: limit });
-  return withServings(foods ?? []);
+  const hits = await withServings(foods ?? []);
+  if (lang !== "ar" || !hits.length) return hits;
+  // Patients reading Arabic: confirmed Arabic names first, the original underneath.
+  const { data: names } = await supabase.from("food_translations").select("food_id, name, practice_id").eq("lang", "ar").in("food_id", hits.map((h) => h.id));
+  const ar = new Map<string, string>();
+  for (const n of (names ?? []).sort((a, b) => Number(Boolean(a.practice_id)) - Number(Boolean(b.practice_id)))) ar.set(n.food_id, n.name);
+  return hits.map((h) => (ar.has(h.id) ? { ...h, alt_name: h.name, name: ar.get(h.id)! } : h));
 }
 
 export type SwapSuggestion = { food: FoodHit; grams: number };

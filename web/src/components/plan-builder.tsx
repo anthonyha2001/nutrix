@@ -102,6 +102,7 @@ export function PlanBuilder({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [meta, setMeta] = useState<BuilderMeta>(initialMeta);
+  const nameRef = useRef<HTMLInputElement>(null);
   const [days, setDaysState] = useState<PlanDay[]>(initialDays.length ? initialDays : blankDays(mode === "plan" ? "plan" : kind));
   // Undo: earlier versions of the days, newest last. Quick successive edits
   // (typing an amount) count as one step.
@@ -154,7 +155,14 @@ export function PlanBuilder({
 
   async function save(options?: { give?: boolean }) {
     setError(null);
-    if (!meta.name.trim()) return setError("Give it a name.");
+    // A template with no name takes its first meal's name.
+    const name = meta.name.trim() || (mode === "template" ? (days.flatMap((d) => d.meals).find((m) => m.name?.trim())?.name?.trim() ?? "") : "");
+    if (!name) {
+      nameRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+      nameRef.current?.focus();
+      return setError(mode === "plan" ? "Give the plan a name (top of this window)." : "Give the template a name (top of this window).");
+    }
+    if (name !== meta.name) setMeta({ ...meta, name });
     if (days.every((d) => d.meals.every((m) => m.items.length === 0))) return setError("Add at least one food.");
     if (options?.give) {
       const warnings = checks.filter((c) => c.level === "warning");
@@ -165,7 +173,7 @@ export function PlanBuilder({
       if (lines.length && !(await confirm(lines.join("\n\n"), { confirmLabel: warnings.length ? `${give?.label} anyway` : give?.label }))) return;
     }
     startTransition(async () => {
-      const result = await onSave({ ...meta, content: daysToContent(days) }, options);
+      const result = await onSave({ ...meta, name, content: daysToContent(days) }, options);
       if (result.error) setError(result.error);
       else {
         draft.clear();
@@ -315,7 +323,7 @@ export function PlanBuilder({
       {/* Details */}
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label={mode === "plan" ? "Plan name" : "Template name"}>
-          <input value={meta.name} disabled={readOnly} onChange={(e) => setMeta({ ...meta, name: e.target.value })} maxLength={120} className={inputClass} />
+          <input ref={nameRef} value={meta.name} disabled={readOnly} onChange={(e) => setMeta({ ...meta, name: e.target.value })} maxLength={120} className={inputClass} />
         </Field>
         {mode === "template" ? (
           <Field label="Category" optional>

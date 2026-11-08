@@ -21,6 +21,8 @@ export type Viewer = {
   id: string;
   email: string;
   fullName: string;
+  // Patient app language chosen in Profile (null = follow the phone).
+  locale: "en" | "ar" | null;
   staff: StaffMembership[];
   patientOf: PatientLink[];
   // Runs the Nutrix platform (see /admin).
@@ -39,7 +41,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   const id = claims.sub;
 
   const [{ data: profile }, { data: staffRows }, { data: patientRows }, { data: isAdmin }, { data: visit }] = await Promise.all([
-    supabase.from("profiles").select("email, full_name").eq("id", id).maybeSingle(),
+    supabase.from("profiles").select("email, full_name, locale").eq("id", id).maybeSingle(),
     supabase
       .from("practice_users")
       .select("practice_id, role, practices(name, timezone, lbp_rate)")
@@ -92,6 +94,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
     id,
     email: profile?.email ?? (typeof claims.email === "string" ? claims.email : ""),
     fullName: profile?.full_name ?? "",
+    locale: profile?.locale === "ar" || profile?.locale === "en" ? profile.locale : null,
     staff,
     patientOf,
     isPlatformAdmin: isAdmin === true,
