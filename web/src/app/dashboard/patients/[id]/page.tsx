@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { AlertTriangle, ArrowLeft, CalendarPlus, Lock, MessageCircle, NotebookTabs, PenLine, Plus, Scale, Smartphone } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CalendarPlus, Lock, MessageCircle, NotebookTabs, PenLine, Plus, Scale, Smartphone, Stethoscope } from "lucide-react";
 import { hasFeature } from "@/lib/features";
 import { guessGoal, suggestTargets, type TargetProfile } from "@/lib/energy";
 import { ActionButton } from "@/components/action-button";
@@ -113,6 +113,11 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
             <Dialog label="Invite to app" icon={<Smartphone className="size-4" />} variant="secondary" title="Invite to the patient app" description="They sign up with this email and their file is linked automatically.">
               <InviteShare url={appUrl} phone={patient.phone} message={patientInviteMessage(firstName, membership.practiceName, appUrl)} />
             </Dialog>
+          )}
+          {clinical && (
+            <Link href={`/dashboard/patients/${patient.id}/consult`} className={buttonClass("primary")}>
+              <Stethoscope className="size-4" /> Start consultation
+            </Link>
           )}
           <Suspense fallback={null}>
             <PatientWhatsApp patient={patient} membership={membership} senderName={viewer.fullName || null} />

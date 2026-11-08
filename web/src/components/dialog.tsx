@@ -195,3 +195,19 @@ export function useDialogAction(
     return result;
   }, initial);
 }
+
+// A dialog's form shown in place instead of in a modal: on success it confirms
+// with a toast and starts a fresh form for the next entry.
+export function InlineForm({ children }: { children: ReactNode }) {
+  const [round, setRound] = useState(0);
+  return (
+    <CloseDialog
+      value={(message) => {
+        if (message) showToast(message);
+        setRound((r) => r + 1);
+      }}
+    >
+      <div key={round}>{children}</div>
+    </CloseDialog>
+  );
+}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MessageCircle, Video } from "lucide-react";
+import { MessageCircle, Stethoscope, Video } from "lucide-react";
 import { ActionButton } from "@/components/action-button";
 import { Dialog } from "@/components/dialog";
 import { PatientSummaryCard } from "@/components/patient-summary";
@@ -68,6 +68,11 @@ export async function AppointmentDetail({ id, membership }: { id: string; member
 
         {open && !canMark && <p className="text-xs text-muted">Attendance can be recorded from the day of the appointment.</p>}
         <div className="flex flex-wrap gap-2 border-t border-line pt-4">
+          {clinical && (open || a.status === "completed") && (
+            <Link href={`/dashboard/patients/${a.patient_id}/consult?appt=${a.id}`} className={buttonClass("primary")}>
+              <Stethoscope className="size-4" /> Start consultation
+            </Link>
+          )}
           {a.status === "requested" && (
             <ActionButton variant="primary" action={confirmAppointment.bind(null, a.id)}>
               Confirm
