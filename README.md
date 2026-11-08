@@ -72,6 +72,25 @@ Phase 2 added:
   appointment, not logging, check-in, weigh-in, package ending and balance due. They are edited, then sent from
   the dietitian's own WhatsApp; nothing is sent automatically.
 - **Getting started:** a checklist on the overview for new practices, and quick actions in the patient file.
+- **Calendar:** click an empty time to book it, or drag a confirmed or requested appointment to move it (after a
+  confirmation).
+- **Builder safety and copying:** unsaved work is kept in the browser and offered back; Undo (Ctrl+Z); copy a meal
+  to all days; duplicate a plan or copy it to another patient.
+- **Printable plan:** `/print/plan/<id>`, with a shopping list for the week. Save it as PDF to send on WhatsApp.
+- **Notes:** First visit, Follow-up and SOAP structures, the dietitian's own saved structures (kept on the device),
+  and quick phrases.
+- **Target weight:** shown in the patient overview, with weeks to go estimated from the last 8 weeks of weigh-ins.
+  The plan check also mentions days with less than 20 g of fibre.
+- **Lab results:** a Labs tab with common tests (HbA1c, lipids, vitamin D…), flags against typical adult ranges,
+  and trends. Same access as measurements.
+- **Intake form:** `/intake/<token>` is a single-use link, valid 14 days, that the patient fills in without an
+  account before the first visit.
+  - Answers fill empty fields in the file. Text the dietitian already wrote is kept, and the patient's answers
+    are added under it, marked as theirs.
+  - Ticked allergies are added, and the reported weight is recorded.
+  - Tests: `supabase/tests/clinical_tools_test.sql`.
+- **Package renewal:** a prompt on the appointment, in consultation mode and in billing when a package is on its
+  last consultation or ends within 14 days. Owners and assistants renew it in one step.
 
 Still to build: Reports (Phase 3), the daily briefing and follow-up rules (Phase 3), device imports (Phase 3),
 and meal photos and barcodes (Phase 4). Reminders are sent by hand on WhatsApp for now; automatic reminders come

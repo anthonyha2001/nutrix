@@ -72,9 +72,20 @@ export function PackageTypeForm({ action, pkg }: { action: Action; pkg?: { name:
   );
 }
 
-export function SellPackageForm({ action, types, today }: { action: Action; types: { id: string; name: string; consultations: number; price_usd: number; valid_days: number }[]; today: string }) {
+export function SellPackageForm({
+  action,
+  types,
+  today,
+  defaultTypeId,
+}: {
+  action: Action;
+  types: { id: string; name: string; consultations: number; price_usd: number; valid_days: number }[];
+  today: string;
+  // Renewing: the package the patient had.
+  defaultTypeId?: string | null;
+}) {
   const [state, formAction, pending] = useDialogAction(action, {});
-  const [typeId, setTypeId] = useState(types[0]?.id ?? "");
+  const [typeId, setTypeId] = useState(types.find((t) => t.id === defaultTypeId)?.id ?? types[0]?.id ?? "");
   const t = types.find((x) => x.id === typeId);
   if (!types.length) return <p className="text-sm text-muted">No packages yet. The practice owner adds them in Billing, Catalogue.</p>;
   return (

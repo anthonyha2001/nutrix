@@ -12,6 +12,7 @@ import { patientSummary } from "@/lib/patient-summary";
 import type { StaffMembership } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { APPOINTMENT_STATUS, formatWhen, isoToLocal } from "@/lib/time";
+import { PackageRenewal } from "../billing/package-renewal";
 import { NoteForm } from "../patients/forms";
 import { addAppointmentNote, cancelAppointment, confirmAppointment, markAttendance, rescheduleAppointment } from "./actions";
 import { CancelForm, RescheduleForm } from "./forms";
@@ -65,6 +66,7 @@ export async function AppointmentDetail({ id, membership }: { id: string; member
         {a.status === "completed" && <p className="text-sm text-muted">{a.patient_packages ? `Counted against ${a.patient_packages.name}.` : "Not counted against a package."}</p>}
 
         {summary && <PatientSummaryCard s={summary} />}
+        {(open || a.status === "completed") && <PackageRenewal patientId={a.patient_id} firstName={firstName} membership={membership} />}
 
         {open && !canMark && <p className="text-xs text-muted">Attendance can be recorded from the day of the appointment.</p>}
         <div className="flex flex-wrap gap-2 border-t border-line pt-4">

@@ -18,6 +18,7 @@ import { createClient } from "@/lib/supabase/server";
 import { addDays, APPOINTMENT_STATUS, formatWhen, isoToLocal, localToIso } from "@/lib/time";
 import { addAppointmentNote, bookAppointment, markAttendance } from "../../../appointments/actions";
 import { BookForm } from "../../../appointments/forms";
+import { PackageRenewal } from "../../../billing/package-renewal";
 import { addMeasurement, saveNote } from "../../actions";
 import { MeasurementForm, NoteForm } from "../../forms";
 
@@ -90,6 +91,8 @@ export default async function ConsultPage({ params, searchParams }: PageProps<"/
           </div>
         )}
       </div>
+
+      <PackageRenewal patientId={id} firstName={firstName} membership={membership} />
 
       {allergies && allergies.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">

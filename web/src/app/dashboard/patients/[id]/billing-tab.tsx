@@ -7,10 +7,11 @@ import type { StaffMembership } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { createInvoice, sellPackage } from "../../billing/actions";
 import { InvoiceForm, SellPackageForm } from "../../billing/forms";
+import { PackageRenewal } from "../../billing/package-renewal";
 import { InvoiceList } from "../../billing/invoice-list";
 
 // Packages and invoices for one patient (owner and assistants).
-export async function BillingTab({ patientId, membership }: { patientId: string; membership: StaffMembership }) {
+export async function BillingTab({ patientId, membership, firstName }: { patientId: string; membership: StaffMembership; firstName?: string }) {
   const supabase = await createClient();
   const today = todayIn(membership.timezone);
   const [{ data: packages }, { data: usage }, { data: types }, { data: balances }] = await Promise.all([
@@ -24,6 +25,11 @@ export async function BillingTab({ patientId, membership }: { patientId: string;
 
   return (
     <>
+      {firstName && (
+        <div className="mb-4">
+          <PackageRenewal patientId={patientId} firstName={firstName} membership={membership} />
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm">
           Balance: <span className={`font-semibold ${balance > 0 ? "text-danger" : "text-success"}`}>{balance > 0 ? `${usd(balance)} due` : "Nothing due"}</span>

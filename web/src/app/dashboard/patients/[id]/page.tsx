@@ -161,7 +161,7 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
         </TabPanel>
         {billing && (
           <TabPanel id="billing" tabs={ASSISTANT_TABS}>
-            <BillingTab patientId={id} membership={membership} />
+            <BillingTab patientId={id} membership={membership} firstName={firstName} />
           </TabPanel>
         )}
         {apptParam && <AppointmentDetail id={apptParam} membership={membership} />}
@@ -582,7 +582,7 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
 
       {billing && (
         <TabPanel id="billing" tabs={TABS}>
-          <BillingTab patientId={id} membership={membership} />
+          <BillingTab patientId={id} membership={membership} firstName={firstName} />
         </TabPanel>
       )}
 
