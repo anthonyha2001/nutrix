@@ -329,3 +329,25 @@ export function SaveAsTemplateForm({ action, defaultName, days }: { action: Acti
     </form>
   );
 }
+
+export function CopyPlanForm({ action, patients }: { action: Action; patients: { id: string; name: string }[] }) {
+  const [state, formAction, pending] = useDialogAction(action, {});
+  return (
+    <form action={formAction} className="space-y-4">
+      {state.error && <Alert tone="error">{state.error}</Alert>}
+      <Field label="Patient" hint="A new draft opens for them, with the same meals. Targets are suggested from their own numbers.">
+        <SearchSelect name="patient_id" required defaultValue="">
+          <option value="" disabled>
+            Choose a patient
+          </option>
+          {patients.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </SearchSelect>
+      </Field>
+      <Submit pending={pending} label="Copy plan" pendingLabel="Copying…" />
+    </form>
+  );
+}

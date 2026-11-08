@@ -23,7 +23,9 @@ import { createClient } from "@/lib/supabase/server";
 import {
   activatePlan,
   archivePlan,
+  copyPlanToPatient,
   deleteDraftPlan,
+  duplicatePlan,
   planFromTemplate,
   savePlanAction,
   templateFromPlan,
@@ -43,7 +45,7 @@ import { AppointmentsTab } from "./appointments-tab";
 import { BillingTab } from "./billing-tab";
 import { DiaryTab } from "./diary-tab";
 import { PatientWhatsApp } from "./patient-whatsapp";
-import { AllergyForm, FromTemplateForm, HealthForm, MeasurementForm, NoteForm, PatientForm, SaveAsTemplateForm } from "../forms";
+import { AllergyForm, CopyPlanForm, FromTemplateForm, HealthForm, MeasurementForm, NoteForm, PatientForm, SaveAsTemplateForm } from "../forms";
 
 export const metadata: Metadata = { title: "Patient" };
 
@@ -163,7 +165,7 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
     );
   }
 
-  const [{ data: health }, { data: allergies }, { data: measurements }, { data: notes }, { data: plans }, { data: templates }, messagesOn] = await Promise.all([
+  const [{ data: health }, { data: allergies }, { data: measurements }, { data: notes }, { data: plans }, { data: templates }, messagesOn, { data: others }] = await Promise.all([
     supabase.from("patient_health").select("*").eq("patient_id", id).maybeSingle(),
     supabase.from("patient_allergies").select("*").eq("patient_id", id).order("created_at"),
     supabase.from("measurements").select("*").eq("patient_id", id).order("measured_on").order("created_at"),
@@ -171,6 +173,8 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
     supabase.from("meal_plans").select("*").eq("patient_id", id).order("created_at", { ascending: false }),
     supabase.from("templates").select("id, name, kind, content").order("is_favorite", { ascending: false }).order("name"),
     hasFeature(membership.practiceId, "messages"),
+    // Other patients, for "Copy to another patient".
+    supabase.from("patients").select("id, full_name").eq("practice_id", membership.practiceId).is("archived_at", null).neq("id", id).order("full_name").limit(500),
   ]);
 
   const allergenIds = (allergies ?? []).map((a) => a.allergen);
@@ -361,6 +365,13 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
                         },
                         p.status === "active" && { kind: "action", label: "End this plan", action: archivePlan.bind(null, p.id), confirm: `End "${p.name}"? It stays in previous plans.` },
                         p.status === "archived" && { kind: "action", label: "Give again", action: activatePlan.bind(null, p.id) },
+                        { kind: "action", label: "Duplicate", action: duplicatePlan.bind(null, p.id) },
+                        (others?.length ?? 0) > 0 && {
+                          kind: "dialog",
+                          label: "Copy to another patient",
+                          title: `Copy "${p.name}"`,
+                          content: <CopyPlanForm action={copyPlanToPatient.bind(null, p.id)} patients={(others ?? []).map((o) => ({ id: o.id, name: o.full_name }))} />,
+                        },
                         {
                           kind: "dialog",
                           label: "Save as template",
@@ -555,6 +566,7 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
         <RouteModal param="plan" size="xl" title={openPlan ? openPlan.name : "New meal plan"} description={openPlan?.status === "archived" ? "A previous plan. It can't be edited; give it again or save it as a template." : patient.full_name}>
           <PlanBuilder
             mode="plan"
+            draftKey={`plan:${id}:${openPlan?.id ?? "new"}`}
             closeParams={["plan"]}
             readOnly={openPlan?.status === "archived"}
             patientAllergies={allergenIds}

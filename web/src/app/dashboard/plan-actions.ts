@@ -114,3 +114,37 @@ export async function setTemplateFavorite(templateId: string, favorite: boolean)
   const { error } = await (await createClient()).from("templates").update({ is_favorite: favorite }).eq("id", templateId);
   return error ? { error: errorMessage(error) } : done(favorite ? "Added to favourites" : "Removed from favourites");
 }
+
+// Copies a plan into a new draft and opens it in the builder: for the same
+// patient ("Duplicate") or another one ("Copy to another patient"). Targets are
+// kept only for the same patient; another patient gets suggestions from their
+// own numbers in the builder.
+async function copyPlanTo(planId: string, targetPatientId: string | null) {
+  const supabase = await createClient();
+  const { data: plan } = await supabase.from("meal_plans").select("patient_id, name, targets, notes, content").eq("id", planId).maybeSingle();
+  if (!plan) return { error: "Plan not found." };
+  const to = targetPatientId || plan.patient_id;
+  const same = to === plan.patient_id;
+  const { data: id, error } = await supabase.rpc("save_meal_plan", {
+    p_patient_id: to,
+    p_name: same ? `${plan.name} (copy)`.slice(0, 120) : plan.name,
+    p_targets: (same ? plan.targets : {}) as Json,
+    p_notes: plan.notes ?? "",
+    p_content: plan.content as Json,
+  });
+  if (error) return { error: errorMessage(error, "Couldn't copy the plan.") };
+  if (!id) return { error: "Couldn't copy the plan." };
+  redirect(`/dashboard/patients/${to}?tab=plans&plan=${id}`);
+}
+
+export async function duplicatePlan(planId: string): Promise<ActionState> {
+  await requireStaff(CLINICAL_ROLES);
+  return copyPlanTo(planId, null);
+}
+
+export async function copyPlanToPatient(planId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireStaff(CLINICAL_ROLES);
+  const patientId = text(formData, "patient_id");
+  if (!patientId) return { error: "Choose a patient." };
+  return copyPlanTo(planId, patientId);
+}

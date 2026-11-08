@@ -133,6 +133,7 @@ export default async function TemplatesPage({ searchParams }: PageProps<"/dashbo
         >
           <PlanBuilder
             mode="template"
+            draftKey={`template:${open?.id ?? `new-${newKind}`}`}
             kind={open?.kind ?? newKind}
             closeParams={["template", "kind"]}
             initialMeta={open ? { name: open.name, category: open.category ?? "", description: open.description ?? "" } : { name: "" }}

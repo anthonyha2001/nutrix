@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { AlertTriangle, ArrowDown, ArrowUp, ChevronDown, ChevronRight, Copy, Plus, Repeat, Sparkles, Trash2, X } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, ChevronDown, ChevronRight, Copy, Plus, Repeat, Sparkles, Trash2, Undo2, X } from "lucide-react";
 import { GOALS, guessGoal, missingForTargets, suggestTargets, type Goal, type TargetProfile } from "@/lib/energy";
 import { useConfirm } from "@/components/confirm";
 import { planChecks } from "@/lib/plan-checks";
@@ -53,6 +53,9 @@ export type BuilderSave = (
 // step, instead of saving a draft and activating it from the list.
 export type GiveToPatient = { label: string; replaces?: string | null };
 
+// Read only from event handlers (undo grouping), never during render.
+const clock = () => Date.now();
+
 const newKey = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Math.random()).slice(2));
 const SLOTS: MealSlot[] = ["breakfast", "snack", "lunch", "snack", "dinner"];
 
@@ -78,6 +81,7 @@ export function PlanBuilder({
   readOnly = false,
   give,
   profile,
+  draftKey,
 }: {
   mode: "plan" | "template";
   kind?: TemplateKind;
@@ -90,12 +94,35 @@ export function PlanBuilder({
   give?: GiveToPatient;
   // The patient's numbers, for suggested targets (plans only).
   profile?: TargetProfile;
+  // Where unsaved work is kept in this browser (e.g. "plan:<patient>:<plan or new>").
+  draftKey?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [meta, setMeta] = useState<BuilderMeta>(initialMeta);
-  const [days, setDays] = useState<PlanDay[]>(initialDays.length ? initialDays : blankDays(mode === "plan" ? "plan" : kind));
+  const [days, setDaysState] = useState<PlanDay[]>(initialDays.length ? initialDays : blankDays(mode === "plan" ? "plan" : kind));
+  // Undo: earlier versions of the days, newest last. Quick successive edits
+  // (typing an amount) count as one step.
+  const [past, setPast] = useState<PlanDay[][]>([]);
+  const lastStep = useRef(0);
+  // Bumped on undo or restore so inputs that keep their own text redraw.
+  const [revision, setRevision] = useState(0);
+  const setDays = (next: PlanDay[] | ((d: PlanDay[]) => PlanDay[])) => {
+    const now = clock();
+    if (now - lastStep.current > 800) setPast((p) => [...p.slice(-39), days]);
+    lastStep.current = now;
+    setDaysState(next);
+  };
+  const undo = () => {
+    const prev = past.at(-1);
+    if (!prev) return;
+    setPast((p) => p.slice(0, -1));
+    setDaysState(prev);
+    setRevision((r) => r + 1);
+    lastStep.current = 0;
+  };
+  const draft = useLocalDraft(readOnly ? undefined : draftKey, { meta, days });
   const [dayIndex, setDayIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -136,6 +163,7 @@ export function PlanBuilder({
       const result = await onSave({ ...meta, content: daysToContent(days) }, options);
       if (result.error) setError(result.error);
       else {
+        draft.clear();
         showToast(result.success ?? "Saved");
         close();
       }
@@ -162,6 +190,23 @@ export function PlanBuilder({
     updateDay((d) => ({ ...d, meals: [...d.meals, { key: newKey(), slot: SLOTS[Math.min(used, SLOTS.length - 1)] ?? "snack", items: [] }] }));
   }
 
+  // Puts a copy of this meal in every other day: it replaces the meal of the
+  // same kind and name there, or is added when the day has none.
+  async function copyMealToAllDays(meal: PlanMeal) {
+    const label = meal.name || SLOT_LABELS[meal.slot];
+    if (!(await confirm(`Copy ${label} to the other ${days.length - 1} days? It replaces their ${label}.`, { confirmLabel: "Copy to all days" }))) return;
+    const same = (m: PlanMeal) => m.slot === meal.slot && (m.name ?? "") === (meal.name ?? "");
+    const copy = () => ({ ...meal, key: newKey(), items: meal.items.map((it) => ({ ...it, uid: newKey(), alternatives: it.alternatives?.map((a) => ({ ...a, uid: newKey() })) })) });
+    setDays((all) =>
+      all.map((d, i) => {
+        if (i === dayIndex) return d;
+        const at = d.meals.findIndex(same);
+        return at >= 0 ? { ...d, meals: d.meals.map((m, j) => (j === at ? copy() : m)) } : { ...d, meals: [...d.meals, copy()] };
+      }),
+    );
+    showToast(`${label} copied to all days`);
+  }
+
   function moveMeal(key: string, dir: -1 | 1) {
     updateDay((d) => {
       const i = d.meals.findIndex((m) => m.key === key);
@@ -174,7 +219,45 @@ export function PlanBuilder({
   }
 
   return (
-    <div className="space-y-5">
+    <div
+      className="space-y-5"
+      onKeyDown={(e) => {
+        // Ctrl+Z outside text fields (they keep their own undo).
+        const field = (e.target as HTMLElement).closest("input, textarea, select");
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !e.shiftKey && !field && past.length) {
+          e.preventDefault();
+          undo();
+        }
+      }}
+    >
+      {draft.saved && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm">
+          <span className="flex-1">You have unsaved changes from {draft.saved.at}. Restore them?</span>
+          <Button
+            type="button"
+            onClick={() => {
+              const saved = draft.restore();
+              if (!saved) return;
+              setMeta(saved.meta);
+              setPast((p) => [...p.slice(-39), days]);
+              setDaysState(saved.days);
+              setRevision((r) => r + 1);
+            }}
+          >
+            Restore
+          </Button>
+          <Button type="button" variant="ghost" onClick={() => draft.discard()}>
+            Discard
+          </Button>
+        </div>
+      )}
+      {!readOnly && past.length > 0 && (
+        <div className="-mb-3 flex justify-end">
+          <button type="button" onClick={undo} title="Undo (Ctrl+Z)" className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted hover:bg-canvas hover:text-ink">
+            <Undo2 className="size-3.5" /> Undo
+          </button>
+        </div>
+      )}
       {/* Details */}
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label={mode === "plan" ? "Plan name" : "Template name"}>
@@ -278,7 +361,7 @@ export function PlanBuilder({
       </div>
 
       {/* Meals */}
-      <div className="space-y-3">
+      <div className="space-y-3" key={revision}>
         {day.meals.map((meal, mi) => (
           <MealCard
             key={meal.key}
@@ -290,6 +373,7 @@ export function PlanBuilder({
             patientAllergies={patientAllergies}
             onChange={(fn) => updateMeal(meal.key, fn)}
             onMove={(dir) => moveMeal(meal.key, dir)}
+            onCopyToAll={days.length > 1 && meal.items.length > 0 ? () => copyMealToAllDays(meal) : undefined}
             onRemove={async () => {
               if (meal.items.length && !(await confirm(`Remove ${meal.name || SLOT_LABELS[meal.slot]} and its foods?`, { confirmLabel: "Remove meal" }))) return;
               updateDay((d) => ({ ...d, meals: d.meals.filter((m) => m.key !== meal.key) }));
@@ -380,6 +464,7 @@ function MealCard({
   onChange,
   onMove,
   onRemove,
+  onCopyToAll,
 }: {
   meal: PlanMeal;
   first: boolean;
@@ -390,6 +475,7 @@ function MealCard({
   onChange: (fn: (m: PlanMeal) => PlanMeal) => void;
   onMove: (dir: -1 | 1) => void;
   onRemove: () => void;
+  onCopyToAll?: () => void;
 }) {
   const [adding, setAdding] = useState(meal.items.length === 0 && !readOnly);
   const totals = mealMacros(meal);
@@ -431,6 +517,11 @@ function MealCard({
         <span className="ml-auto text-sm font-medium tabular-nums">{round(totals.kcal)} kcal</span>
         {!readOnly && (
           <span className="flex items-center">
+            {onCopyToAll && (
+              <IconButton label="Copy to all days" onClick={onCopyToAll}>
+                <Copy className="size-4" />
+              </IconButton>
+            )}
             <IconButton label="Move up" disabled={first} onClick={() => onMove(-1)}>
               <ArrowUp className="size-4" />
             </IconButton>
@@ -759,4 +850,70 @@ function IconButton({ label, onClick, disabled, danger, children }: { label: str
       {children}
     </button>
   );
+}
+
+// Keeps unsaved builder work in this browser (localStorage), so closing the
+// builder by mistake loses nothing. Offered back the next time it opens; cleared
+// on save. Never written to the database until the dietitian saves.
+type Draft = { meta: BuilderMeta; days: PlanDay[] };
+function useLocalDraft(key: string | undefined, current: Draft) {
+  const storageKey = key ? `nutrix:draft:${key}` : null;
+  const [saved, setSaved] = useState<(Draft & { at: string }) | null>(null);
+  const baseline = useRef<string | null>(null);
+  const offered = useRef(false);
+
+  // On open: offer a stored draft that differs from what was loaded.
+  useEffect(() => {
+    if (!storageKey || offered.current) return;
+    offered.current = true;
+    baseline.current = JSON.stringify(current);
+    const t = setTimeout(() => {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        const d = JSON.parse(raw) as Draft & { savedAt: number };
+        if (JSON.stringify({ meta: d.meta, days: d.days }) === baseline.current) return localStorage.removeItem(storageKey);
+        const at = new Date(d.savedAt);
+        const sameDay = at.toDateString() === new Date().toDateString();
+        setSaved({ meta: d.meta, days: d.days, at: at.toLocaleString("en-GB", sameDay ? { hour: "2-digit", minute: "2-digit" } : { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) });
+      } catch {
+        // Storage unavailable or unreadable: nothing to offer.
+      }
+    }, 0);
+    return () => clearTimeout(t);
+  }, [storageKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // While editing: keep a copy once the work differs from what was loaded.
+  const snapshot = JSON.stringify(current);
+  useEffect(() => {
+    if (!storageKey || saved || baseline.current === null) return;
+    const t = setTimeout(() => {
+      try {
+        if (snapshot === baseline.current) localStorage.removeItem(storageKey);
+        else localStorage.setItem(storageKey, JSON.stringify({ ...JSON.parse(snapshot), savedAt: Date.now() }));
+      } catch {
+        // Full or blocked storage: the builder still works, just without recovery.
+      }
+    }, 600);
+    return () => clearTimeout(t);
+  }, [storageKey, snapshot, saved]);
+
+  const remove = () => {
+    try {
+      if (storageKey) localStorage.removeItem(storageKey);
+    } catch {}
+  };
+  return {
+    saved,
+    restore: () => {
+      const s = saved;
+      setSaved(null);
+      return s;
+    },
+    discard: () => {
+      remove();
+      setSaved(null);
+    },
+    clear: remove,
+  };
 }
