@@ -210,3 +210,12 @@ export async function deleteLabResult(id: string): Promise<ActionState> {
   const { error } = await (await createClient()).from("lab_results").delete().eq("id", id);
   return error ? { error: errorMessage(error) } : done("Lab result deleted");
 }
+
+// A link to the intake form for the patient (the open one, or a new one).
+export async function createIntakeLink(patientId: string): Promise<{ url?: string; error?: string }> {
+  await requireStaff(CLINICAL_ROLES);
+  const { data, error } = await (await createClient()).rpc("intake_create", { p_patient_id: patientId });
+  if (error || !data) return { error: error ? errorMessage(error) : "Couldn't create the link." };
+  const base = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3300";
+  return { url: `${base}/intake/${data}` };
+}

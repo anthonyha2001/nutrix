@@ -212,6 +212,19 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"intake_forms": {
+                  Row: {
+                    "answers": Json | null,"created_at": string,"created_by": string | null,"expires_at": string,"id": string,"patient_id": string,"submitted_at": string | null,"token": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "answers"?: Json | null,"created_at"?: string,"created_by"?: string | null,"expires_at"?: string,"id"?: string,"patient_id": string,"submitted_at"?: string | null,"token"?: string
+                  }
+                  Update: {
+                    "answers"?: Json | null,"created_at"?: string,"created_by"?: string | null,"expires_at"?: string,"id"?: string,"patient_id"?: string,"submitted_at"?: string | null,"token"?: string
+                  }
+                  Relationships: [
+                  ]
                 },"invites": {
                   Row: {
                     "accepted_at": string | null,"created_at": string,"email": string,"id": string,"invited_by": string | null,"practice_id": string,"role": Database["public"]['Enums']["practice_role"]
@@ -955,6 +968,15 @@ isOneToOne: false
                            },
 "save_recipe":
 { Args: { "p_category"?: string,"p_id"?: string,"p_ingredients"?: Json,"p_instructions"?: string,"p_name"?: string,"p_practice_id": string,"p_servings"?: number,"p_yield_g"?: number }; Returns: string
+                           },
+"intake_create":
+{ Args: { "p_patient_id": string }; Returns: string
+                           },
+"intake_get":
+{ Args: { "p_token": string }; Returns: { "first_name": string; "practice_name": string; "status": string }[]
+                           },
+"intake_submit":
+{ Args: { "p_answers": Json; "p_token": string }; Returns: undefined
                            },
 "food_import_apply":
 { Args: { "p_dataset": string,"p_version": string }; Returns: number

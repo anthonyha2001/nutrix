@@ -45,6 +45,8 @@ import { AppointmentDetail } from "../../appointments/appointment-detail";
 import { AppointmentsTab } from "./appointments-tab";
 import { BillingTab } from "./billing-tab";
 import { DiaryTab } from "./diary-tab";
+import { IntakePanel } from "./intake-panel";
+import { IntakeSend } from "./intake-send";
 import { LabsTab } from "./labs-tab";
 import { PatientWhatsApp } from "./patient-whatsapp";
 import { AllergyForm, CopyPlanForm, FromTemplateForm, HealthForm, MeasurementForm, NoteForm, PatientForm, SaveAsTemplateForm } from "../forms";
@@ -249,6 +251,9 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
           <Link href={`/dashboard/patients/${id}?tab=appointments`} scroll={false} className={buttonClass("secondary")}>
             <CalendarPlus className="size-4" /> Book
           </Link>
+          {!health?.medical_history && !health?.nutrition_history && (
+            <IntakeSend patientId={id} firstName={firstName} practiceName={membership.practiceName} phone={patient.phone} />
+          )}
           {patient.user_id && messagesOn && (
             <Link href={`/dashboard/messages?p=${id}`} className={buttonClass("secondary")}>
               <MessageCircle className="size-4" /> Message
@@ -500,6 +505,9 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
 
       {/* Health */}
       <TabPanel id="health" tabs={TABS}>
+        <div className="mb-4">
+          <IntakePanel patient={patient} practiceName={membership.practiceName} />
+        </div>
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <SectionTitle
