@@ -282,6 +282,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"lab_results": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"id": string,"measured_on": string,"note": string | null,"patient_id": string,"test": string,"unit": string,"value": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"measured_on": string,"note"?: string | null,"patient_id": string,"test": string,"unit": string,"value": number
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"measured_on"?: string,"note"?: string | null,"patient_id"?: string,"test"?: string,"unit"?: string,"value"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "lab_results_patient_id_fkey"
+      columns: ["patient_id"]
+isOneToOne: false
+      referencedRelation: "patients"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"meal_plans": {
                   Row: {
                     "activated_at": string | null,"content": NonNullable<Json>,"created_at": string,"created_by": string | null,"ends_on": string | null,"id": string,"name": string,"notes": string | null,"patient_id": string,"source_template_id": string | null,"starts_on": string | null,"status": Database["public"]['Enums']["plan_status"],"targets": NonNullable<Json>,"updated_at": string

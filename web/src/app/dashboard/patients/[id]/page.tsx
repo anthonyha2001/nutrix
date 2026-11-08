@@ -45,12 +45,13 @@ import { AppointmentDetail } from "../../appointments/appointment-detail";
 import { AppointmentsTab } from "./appointments-tab";
 import { BillingTab } from "./billing-tab";
 import { DiaryTab } from "./diary-tab";
+import { LabsTab } from "./labs-tab";
 import { PatientWhatsApp } from "./patient-whatsapp";
 import { AllergyForm, CopyPlanForm, FromTemplateForm, HealthForm, MeasurementForm, NoteForm, PatientForm, SaveAsTemplateForm } from "../forms";
 
 export const metadata: Metadata = { title: "Patient" };
 
-const TABS = ["overview", "plans", "diary", "measurements", "notes", "health", "appointments", "billing"] as const;
+const TABS = ["overview", "plans", "diary", "measurements", "labs", "notes", "health", "appointments", "billing"] as const;
 const ASSISTANT_TABS = ["appointments", "billing"] as const;
 const ACTIVITY_LABELS: Record<string, string> = {
   sedentary: "Sedentary",
@@ -224,6 +225,7 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
           { id: "plans", label: "Meal plans", count: plans?.filter((p) => p.status === "draft").length },
           { id: "diary", label: "Diary" },
           { id: "measurements", label: "Measurements" },
+          { id: "labs", label: "Labs" },
           { id: "notes", label: "Notes" },
           { id: "health", label: "Health" },
           { id: "appointments", label: "Appointments" },
@@ -397,6 +399,11 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
             </ul>
           )}
         </Card>
+      </TabPanel>
+
+      {/* Labs */}
+      <TabPanel id="labs" tabs={TABS}>
+        <LabsTab patientId={id} today={today} />
       </TabPanel>
 
       {/* Measurements */}

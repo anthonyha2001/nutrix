@@ -182,3 +182,31 @@ export async function deleteNote(id: string): Promise<ActionState> {
   const { error } = await (await createClient()).from("consultation_notes").delete().eq("id", id);
   return error ? { error: errorMessage(error) } : done("Note deleted");
 }
+
+export async function addLabResult(patientId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { viewer } = await requireStaff(CLINICAL_ROLES);
+  const preset = text(formData, "test");
+  const test = preset === "other" ? text(formData, "other_name") : preset;
+  const value = optionalNumber(formData, "value");
+  const unit = text(formData, "unit");
+  const date = text(formData, "measured_on");
+  if (!test) return { error: "Choose or name the test." };
+  if (value === null || Number.isNaN(value) || value < 0) return { error: "Enter the result as a number." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "Choose the date of the test." };
+  const { error } = await (await createClient()).from("lab_results").insert({
+    patient_id: patientId,
+    test: test.slice(0, 60),
+    value,
+    unit: unit.slice(0, 20),
+    measured_on: date,
+    note: text(formData, "note") || null,
+    created_by: viewer.id,
+  });
+  return error ? { error: errorMessage(error, "Couldn't save the result.") } : done("Lab result added");
+}
+
+export async function deleteLabResult(id: string): Promise<ActionState> {
+  await requireStaff(CLINICAL_ROLES);
+  const { error } = await (await createClient()).from("lab_results").delete().eq("id", id);
+  return error ? { error: errorMessage(error) } : done("Lab result deleted");
+}

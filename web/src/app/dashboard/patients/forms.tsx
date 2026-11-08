@@ -5,6 +5,7 @@ import { useDialogAction } from "@/components/dialog";
 import { SearchSelect } from "@/components/search-select";
 import { Alert, Button, Field, inputClass } from "@/components/ui";
 import type { ActionState } from "@/lib/action-result";
+import { LAB_TESTS } from "@/lib/labs";
 import { ALLERGENS } from "@/lib/nutrition";
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
@@ -470,5 +471,48 @@ function NoteBody({ defaultValue }: { defaultValue: string }) {
         </div>
       </div>
     </Field>
+  );
+}
+
+export function LabForm({ action, today }: { action: Action; today: string }) {
+  const [state, formAction, pending] = useDialogAction(action, {});
+  const [test, setTest] = useState(LAB_TESTS[0].id);
+  const preset = LAB_TESTS.find((t) => t.id === test);
+  return (
+    <form action={formAction} className="space-y-4">
+      {state.error && <Alert tone="error">{state.error}</Alert>}
+      <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
+        <Field label="Test">
+          <select name="test" value={test} onChange={(e) => setTest(e.target.value)} className={inputClass}>
+            {LAB_TESTS.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+            <option value="other">Other test</option>
+          </select>
+        </Field>
+        <Field label="Date">
+          <input name="measured_on" type="date" defaultValue={today} required className={inputClass} />
+        </Field>
+      </div>
+      {test === "other" && (
+        <Field label="Test name">
+          <input name="other_name" required maxLength={60} placeholder="e.g. Vitamin B9 (folate)" className={inputClass} />
+        </Field>
+      )}
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Result" hint={preset ? `Typical: ${preset.range}` : undefined}>
+          <input name="value" inputMode="decimal" required className={inputClass} />
+        </Field>
+        <Field label="Unit">
+          <input key={test} name="unit" maxLength={20} defaultValue={preset?.unit ?? ""} className={inputClass} />
+        </Field>
+      </div>
+      <Field label="Note" optional>
+        <input name="note" maxLength={300} placeholder="e.g. fasting, lab name" className={inputClass} />
+      </Field>
+      <Submit pending={pending} label="Add result" />
+    </form>
   );
 }
