@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDialogAction } from "@/components/dialog";
 import { SearchSelect } from "@/components/search-select";
 import { Alert, Button, Field, inputClass } from "@/components/ui";
@@ -256,9 +256,7 @@ export function NoteForm({ action, today, note }: { action: Action; today: strin
           <input name="noted_on" type="date" defaultValue={note?.noted_on ?? today} required className={inputClass} />
         </Field>
       </div>
-      <Field label="Note">
-        <textarea name="body" required rows={8} maxLength={10000} defaultValue={note?.body} className={textareaClass} />
-      </Field>
+      <NoteBody defaultValue={note?.body ?? ""} />
       <Submit pending={pending} label={note ? "Save" : "Add note"} />
     </form>
   );
@@ -349,5 +347,121 @@ export function CopyPlanForm({ action, patients }: { action: Action; patients: {
       </Field>
       <Submit pending={pending} label="Copy plan" pendingLabel="Copying…" />
     </form>
+  );
+}
+
+// Structures to start a note from, and phrases dietitians write again and again.
+const NOTE_TEMPLATES: { label: string; text: string }[] = [
+  { label: "First visit", text: "Reason for visit:\nHistory and habits:\nObservations (weight, measurements):\nGoals agreed:\nPlan:\nNext visit:" },
+  { label: "Follow-up", text: "Since last visit:\nWeight and measurements:\nAdherence (diary, check-ins):\nWhat worked, what was hard:\nChanges to the plan:\nNext visit:" },
+  { label: "SOAP", text: "S (subjective):\nO (objective):\nA (assessment):\nP (plan):" },
+];
+const NOTE_PHRASES = [
+  "Good adherence this week.",
+  "Struggling with evening snacking.",
+  "Discussed portion sizes.",
+  "Increase water to 2 L a day.",
+  "Added a high-protein breakfast.",
+  "Reduce sugary drinks.",
+  "Encouraged a daily 30-minute walk.",
+  "Review in 2 weeks.",
+];
+const MY_TEMPLATES_KEY = "nutrix:note-templates";
+
+function readMine(): { label: string; text: string }[] {
+  try {
+    return JSON.parse(localStorage.getItem(MY_TEMPLATES_KEY) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+function NoteBody({ defaultValue }: { defaultValue: string }) {
+  const [text, setText] = useState(defaultValue);
+  const [mine, setMine] = useState<{ label: string; text: string }[]>([]);
+  const area = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const t = setTimeout(() => setMine(readMine()), 0);
+    return () => clearTimeout(t);
+  }, []);
+
+  // A structure goes at the end; a phrase goes where the cursor is.
+  const addBlock = (block: string) => setText((t) => (t.trim() ? `${t.trimEnd()}\n\n${block}` : block));
+  const addPhrase = (phrase: string) => {
+    const el = area.current;
+    const at = el ? el.selectionEnd : text.length;
+    const before = text.slice(0, at);
+    const sep = before && !/\s$/.test(before) ? " " : "";
+    const next = before + sep + phrase + text.slice(at);
+    setText(next);
+    requestAnimationFrame(() => {
+      if (!el) return;
+      el.focus();
+      const pos = (before + sep + phrase).length;
+      el.setSelectionRange(pos, pos);
+    });
+  };
+  const [naming, setNaming] = useState<string | null>(null);
+  const saveMine = () => {
+    const label = naming?.trim();
+    setNaming(null);
+    if (!label || !text.trim()) return;
+    const next = [...mine.filter((m) => m.label !== label), { label: label.slice(0, 40), text }].slice(-12);
+    setMine(next);
+    try {
+      localStorage.setItem(MY_TEMPLATES_KEY, JSON.stringify(next));
+    } catch {}
+  };
+
+  const chip = "h-7 rounded-lg bg-canvas px-2.5 text-xs font-medium text-ink/80 hover:text-ink";
+  return (
+    <Field label="Note">
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs text-muted">Start from:</span>
+          {[...NOTE_TEMPLATES, ...mine].map((t) => (
+            <button key={t.label} type="button" onClick={() => addBlock(t.text)} className={chip}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <textarea ref={area} name="body" required rows={9} maxLength={10000} value={text} onChange={(e) => setText(e.target.value)} className={textareaClass} />
+        <div className="flex flex-wrap items-center gap-1.5">
+          {NOTE_PHRASES.map((p) => (
+            <button key={p} type="button" onClick={() => addPhrase(p)} className={chip}>
+              + {p}
+            </button>
+          ))}
+          {text.trim() && naming === null && (
+            <button type="button" onClick={() => setNaming("")} className="h-7 px-2 text-xs text-muted underline-offset-2 hover:text-ink hover:underline">
+              Save as my template
+            </button>
+          )}
+          {naming !== null && (
+            <span className="flex items-center gap-1.5">
+              <input
+                autoFocus
+                value={naming}
+                onChange={(e) => setNaming(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    saveMine();
+                  }
+                  if (e.key === "Escape") setNaming(null);
+                }}
+                maxLength={40}
+                placeholder="Template name"
+                aria-label="Template name"
+                className="h-7 w-40 rounded-lg border border-line px-2 text-xs outline-none focus:border-ink"
+              />
+              <button type="button" onClick={saveMine} disabled={!naming.trim()} className="h-7 rounded-lg bg-ink px-2.5 text-xs font-medium text-white disabled:opacity-40">
+                Save
+              </button>
+            </span>
+          )}
+        </div>
+      </div>
+    </Field>
   );
 }
