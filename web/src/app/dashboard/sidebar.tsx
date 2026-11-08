@@ -20,7 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Logo, Skeleton } from "@/components/ui";
-import type { ModuleIcon } from "@/lib/modules";
+import type { ModuleIcon, NavSection } from "@/lib/modules";
 
 const ICONS: Record<ModuleIcon, LucideIcon> = {
   overview: LayoutDashboard,
@@ -36,7 +36,7 @@ const ICONS: Record<ModuleIcon, LucideIcon> = {
   settings: Settings,
 };
 
-export type NavItem = { href: string; label: string; icon: ModuleIcon; badge?: number };
+export type NavItem = { href: string; label: string; icon: ModuleIcon; section: NavSection; badge?: number };
 
 // Lets nav links (rendered in a server slot) close the mobile drawer.
 const CloseDrawer = createContext<() => void>(() => {});
@@ -115,11 +115,14 @@ export function NavLinks({ items }: { items: NavItem[] }) {
 
   return (
     <ul className="space-y-1">
-      {items.map(({ href, label, icon, badge }) => {
+      {items.map(({ href, label, icon, badge, section }, i) => {
         const Icon = ICONS[icon];
+        // A small heading where a new group starts (the first group needs none).
+        const heading = i > 0 && items[i - 1].section !== section ? section : null;
         const active = href === "/dashboard" ? pathname === href : pathname.startsWith(href);
         return (
           <li key={href}>
+            {heading && <p className="px-3 pt-4 pb-1.5 text-xs font-medium tracking-wide text-muted uppercase">{heading}</p>}
             <Link
               href={href}
               prefetch

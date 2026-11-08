@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AlertTriangle, ArrowLeft, Lock, Plus, Smartphone } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CalendarPlus, Lock, MessageCircle, NotebookTabs, PenLine, Plus, Scale, Smartphone } from "lucide-react";
+import { hasFeature } from "@/lib/features";
+import { ActionButton } from "@/components/action-button";
 import { Dialog } from "@/components/dialog";
 import { InviteShare } from "@/components/invite-share";
 import { MacroSummary } from "@/components/macro-summary";
@@ -150,13 +152,14 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
     );
   }
 
-  const [{ data: health }, { data: allergies }, { data: measurements }, { data: notes }, { data: plans }, { data: templates }] = await Promise.all([
+  const [{ data: health }, { data: allergies }, { data: measurements }, { data: notes }, { data: plans }, { data: templates }, messagesOn] = await Promise.all([
     supabase.from("patient_health").select("*").eq("patient_id", id).maybeSingle(),
     supabase.from("patient_allergies").select("*").eq("patient_id", id).order("created_at"),
     supabase.from("measurements").select("*").eq("patient_id", id).order("measured_on").order("created_at"),
     supabase.from("consultation_notes").select("*, profiles(full_name)").eq("patient_id", id).order("noted_on", { ascending: false }).order("created_at", { ascending: false }),
     supabase.from("meal_plans").select("*").eq("patient_id", id).order("created_at", { ascending: false }),
     supabase.from("templates").select("id, name, kind, content").order("is_favorite", { ascending: false }).order("name"),
+    hasFeature(membership.practiceId, "messages"),
   ]);
 
   const allergenIds = (allergies ?? []).map((a) => a.allergen);
@@ -203,6 +206,26 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
 
       {/* Overview */}
       <TabPanel id="overview" tabs={TABS}>
+        {/* The things a consultation usually needs, without hunting through tabs. */}
+        <div className="mb-4 flex flex-wrap gap-2">
+          <Link href={`/dashboard/patients/${id}?tab=plans&plan=${active ? active.id : "new"}`} scroll={false} className={buttonClass("primary")}>
+            <NotebookTabs className="size-4" /> {active ? "Open meal plan" : "New meal plan"}
+          </Link>
+          <Dialog label="Add weight" icon={<Scale className="size-4" />} variant="secondary" title="Add measurement">
+            <MeasurementForm action={addMeasurement.bind(null, id)} today={today} />
+          </Dialog>
+          <Dialog label="Add note" icon={<PenLine className="size-4" />} variant="secondary" title="Consultation note" size="lg">
+            <NoteForm action={saveNote.bind(null, id, null)} today={today} />
+          </Dialog>
+          <Link href={`/dashboard/patients/${id}?tab=appointments`} scroll={false} className={buttonClass("secondary")}>
+            <CalendarPlus className="size-4" /> Book
+          </Link>
+          {patient.user_id && messagesOn && (
+            <Link href={`/dashboard/messages?p=${id}`} className={buttonClass("secondary")}>
+              <MessageCircle className="size-4" /> Message
+            </Link>
+          )}
+        </div>
         <div className="stagger grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Stat label="Weight" value={latest ? `${num(latest.weight_kg, 1)} kg` : "-"} hint={latest ? formatDate(latest.measured_on) : "Not measured yet"} />
           <Stat
@@ -225,7 +248,18 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
                   {totalsOf(active.content) && <MacroSummary compact totals={totalsOf(active.content)!} targets={active.targets as Targets} />}
                 </div>
               ) : (
-                <p className="text-sm text-muted">No active plan. Build one in Meal plans.</p>
+                <div className="space-y-3">
+                  <p className="text-sm text-muted">
+                    {plans?.some((p) => p.status === "draft") ? `A draft is waiting. Open it and give it to ${firstName}.` : `${firstName} has no meal plan yet.`}
+                  </p>
+                  <Link
+                    href={`/dashboard/patients/${id}?tab=plans&plan=${plans?.find((p) => p.status === "draft")?.id ?? "new"}`}
+                    scroll={false}
+                    className={buttonClass("secondary")}
+                  >
+                    {plans?.some((p) => p.status === "draft") ? "Open the draft" : "Build a plan"}
+                  </Link>
+                </div>
               )}
             </div>
           </Card>
@@ -239,7 +273,9 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
                   <p className="mt-1 line-clamp-4 text-sm whitespace-pre-line">{latestNote.body}</p>
                 </div>
               ) : (
-                <p className="text-sm text-muted">No consultation notes yet.</p>
+                <Link href={`/dashboard/patients/${id}?tab=notes`} scroll={false} className="text-sm text-muted underline-offset-2 hover:text-ink hover:underline">
+                  No consultation notes yet. Add one after the visit.
+                </Link>
               )}
             </div>
           </Card>
@@ -282,6 +318,15 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
                           .join(" · ")}
                       </span>
                     </Link>
+                    {p.status === "draft" && (
+                      <ActionButton
+                        variant="primary"
+                        action={activatePlan.bind(null, p.id)}
+                        confirm={active ? `Give "${p.name}" to ${firstName}? "${active.name}" moves to previous plans.` : undefined}
+                      >
+                        {`Give to ${firstName}`}
+                      </ActionButton>
+                    )}
                     <RowMenu
                       items={[
                         { kind: "link", label: p.status === "archived" ? "View" : "Open", href: `/dashboard/patients/${id}?tab=plans&plan=${p.id}` },
@@ -503,6 +548,7 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
             }
             initialDays={openPlan ? contentToDays(openPlan.content as SavedContent) : []}
             onSave={savePlanAction.bind(null, id, openPlan?.id ?? null)}
+            give={!openPlan || openPlan.status === "draft" ? { label: `Give to ${firstName}`, replaces: active && active.id !== openPlan?.id ? active.name : null } : undefined}
           />
         </RouteModal>
       )}

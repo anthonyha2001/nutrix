@@ -13,10 +13,17 @@ type Content = { days: unknown[] };
 
 const KINDS: TemplateKind[] = ["meal", "day", "week", "program"];
 
-export async function savePlanAction(patientId: string, planId: string | null, input: BuilderMeta & { content: Content }): Promise<ActionState> {
+// `give`: also hand the plan to the patient (the previous active plan moves to
+// previous plans), so the builder can do it in one step.
+export async function savePlanAction(
+  patientId: string,
+  planId: string | null,
+  input: BuilderMeta & { content: Content },
+  options?: { give?: boolean },
+): Promise<ActionState> {
   await requireStaff(CLINICAL_ROLES);
   const supabase = await createClient();
-  const { error } = await supabase.rpc("save_meal_plan", {
+  const { data: savedId, error } = await supabase.rpc("save_meal_plan", {
     p_patient_id: patientId,
     p_id: planId ?? undefined,
     p_name: input.name,
@@ -27,6 +34,11 @@ export async function savePlanAction(patientId: string, planId: string | null, i
     p_content: input.content as Json,
   });
   if (error) return { error: errorMessage(error, "Couldn't save the plan.") };
+  if (options?.give && savedId) {
+    const { error: giveError } = await supabase.rpc("activate_meal_plan", { p_id: savedId });
+    if (giveError) return { error: errorMessage(giveError, "The plan was saved as a draft, but couldn't be given to the patient.") };
+    return done("Plan given to the patient");
+  }
   return done(planId ? "Plan saved" : "Plan created");
 }
 

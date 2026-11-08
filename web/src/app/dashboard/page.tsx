@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BellRing, Video } from "lucide-react";
-import { Badge, Card, PageHeader, SectionTitle } from "@/components/ui";
+import { CalendarPlus, Check, ChevronRight, Plus, Video } from "lucide-react";
+import { Dialog } from "@/components/dialog";
+import { Badge, buttonClass, Card, PageHeader, SectionTitle } from "@/components/ui";
 import { todayIn } from "@/lib/format";
-import { FOLLOW_UP_RULES } from "@/lib/modules";
 import { usd } from "@/lib/money";
 import { round } from "@/lib/nutrition";
+import { clinicians } from "@/lib/practice";
 import { requireStaff } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { addDays, APPOINTMENT_STATUS, dayLabel, formatTime, localToIso } from "@/lib/time";
+import { createPatient } from "./patients/actions";
+import { PatientForm } from "./patients/forms";
 
 export const metadata: Metadata = { title: "Overview" };
 
@@ -18,10 +21,12 @@ export default async function OverviewPage() {
   const today = todayIn(tz);
   const clinical = membership.role !== "assistant";
   const billing = membership.role !== "dietitian";
+  const owner = membership.role === "owner";
+  const canAssign = membership.role !== "dietitian";
   const supabase = await createClient();
 
   // Row-level security scopes everything: a dietitian sees their own patients.
-  const [{ count: activePatients }, { data: todays }, { count: requests }, { data: diary }, { data: payments }, { data: balances }] = await Promise.all([
+  const [{ count: activePatients }, { data: todays }, { count: requests }, { data: diary }, { data: payments }, { data: balances }, setup, team] = await Promise.all([
     supabase.from("patients").select("*", { count: "exact", head: true }).eq("practice_id", membership.practiceId).is("archived_at", null),
     supabase
       .from("appointments")
@@ -37,6 +42,8 @@ export default async function OverviewPage() {
       : Promise.resolve({ data: [] }),
     billing ? supabase.from("payments").select("amount_usd, paid_at").eq("practice_id", membership.practiceId).gte("paid_at", localToIso(`${today.slice(0, 7)}-01`, "00:00", tz)) : Promise.resolve({ data: [] }),
     billing ? supabase.from("invoice_balances").select("due_usd").eq("practice_id", membership.practiceId).gt("due_usd", 0) : Promise.resolve({ data: [] }),
+    clinical ? setupProgress(membership.practiceId, owner) : Promise.resolve(null),
+    canAssign ? clinicians(membership.practiceId) : Promise.resolve([]),
   ]);
 
   // Latest diary activity, one line per patient and day.
@@ -61,9 +68,63 @@ export default async function OverviewPage() {
       : { label: "Patients logging", value: String(new Set([...activity.values()].map((a) => a.patientId)).size), href: "/dashboard/patients", hint: "in the last 3 days" },
   ];
 
+  // First steps for a new practice. The card disappears once all are done.
+  const steps = setup
+    ? [
+        { label: "Add your first patient", done: setup.patients > 0, href: "/dashboard/patients", hint: "Their file holds plans, measurements, notes and health history." },
+        { label: "Give a patient their meal plan", done: setup.plans > 0, href: "/dashboard/patients", hint: "Open a patient, build a plan, then press \"Give to\" with their name." },
+        { label: "Invite a patient to the app", done: setup.onApp > 0, href: "/dashboard/patients", hint: "From the patient's file. They see their plan and log meals on their phone." },
+        ...(owner
+          ? [
+              { label: "Set your consultation prices", done: setup.services > 0, href: "/dashboard/billing?tab=catalogue", hint: "Services and packages, so visits are billed for you." },
+              { label: "Invite your team (optional)", done: setup.team > 1, href: "/dashboard/team", hint: "Dietitians and assistants, each with the right access." },
+            ]
+          : []),
+      ]
+    : [];
+  const stepsDone = steps.filter((s) => s.done).length;
+
   return (
     <div className="space-y-6">
-      <PageHeader title={firstName ? `Good day, ${firstName}` : "Overview"} description={membership.practiceName} />
+      <PageHeader
+        title={firstName ? `Good day, ${firstName}` : "Overview"}
+        description={membership.practiceName}
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Link href="/dashboard/appointments" className={buttonClass("secondary")}>
+              <CalendarPlus className="size-4" /> Book
+            </Link>
+            <Dialog label="Add patient" icon={<Plus className="size-4" />} title="Add patient">
+              <PatientForm action={createPatient} dietitians={canAssign ? team : undefined} defaultDietitian={owner ? viewer.id : undefined} />
+            </Dialog>
+          </div>
+        }
+      />
+
+      {steps.length > 0 && stepsDone < steps.length && (
+        <Card>
+          <SectionTitle action={<span className="text-sm text-muted tabular-nums">{stepsDone} of {steps.length} done</span>}>Getting started</SectionTitle>
+          <div className="mx-5 mb-3 h-1.5 overflow-hidden rounded-full bg-canvas" role="progressbar" aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={stepsDone}>
+            <div className="h-full rounded-full bg-brand" style={{ width: `${(stepsDone / steps.length) * 100}%` }} />
+          </div>
+          <ul className="divide-y divide-line border-t border-line">
+            {steps.map((s) => (
+              <li key={s.label}>
+                <Link href={s.href} className="flex items-center gap-3 px-5 py-3 hover:bg-canvas/60">
+                  <span className={`grid size-6 shrink-0 place-items-center rounded-full border ${s.done ? "border-brand bg-brand text-ink" : "border-line"}`}>
+                    {s.done && <Check className="size-3.5" />}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className={`block text-sm font-medium ${s.done ? "text-muted line-through" : ""}`}>{s.label}</span>
+                    {!s.done && <span className="block text-sm text-muted">{s.hint}</span>}
+                  </span>
+                  {!s.done && <ChevronRight className="size-4 shrink-0 text-muted" />}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
         {stats.map((s) => (
@@ -129,21 +190,21 @@ export default async function OverviewPage() {
           </Card>
         )}
       </div>
-
-      <Card>
-        <SectionTitle action={<Badge tone="gray">Phase 3</Badge>}>Daily briefing</SectionTitle>
-        <div className="px-5 pb-5">
-          <p className="text-sm text-muted">Coming next: each morning Nutrix will list the patients who need you, and why. You choose which situations count.</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {FOLLOW_UP_RULES.map((r) => (
-              <span key={r.id} className="inline-flex items-center gap-1.5 rounded-full bg-canvas px-3 py-1 text-xs text-muted">
-                <BellRing className="size-3" />
-                {r.label}
-              </span>
-            ))}
-          </div>
-        </div>
-      </Card>
     </div>
   );
+}
+
+// How far a new practice has got with its first steps. Row-level security
+// scopes the counts, so a dietitian's checklist reflects their own patients.
+async function setupProgress(practiceId: string, owner: boolean) {
+  const supabase = await createClient();
+  const count = (q: PromiseLike<{ count: number | null }>) => Promise.resolve(q).then((r) => r.count ?? 0);
+  const [patients, plans, onApp, services, team] = await Promise.all([
+    count(supabase.from("patients").select("*", { count: "exact", head: true }).eq("practice_id", practiceId)),
+    count(supabase.from("meal_plans").select("*", { count: "exact", head: true }).neq("status", "draft")),
+    count(supabase.from("patients").select("*", { count: "exact", head: true }).eq("practice_id", practiceId).not("user_id", "is", null)),
+    owner ? count(supabase.from("services").select("*", { count: "exact", head: true }).eq("practice_id", practiceId)) : Promise.resolve(0),
+    owner ? count(supabase.from("practice_users").select("*", { count: "exact", head: true }).eq("practice_id", practiceId)) : Promise.resolve(0),
+  ]);
+  return { patients, plans, onApp, services, team };
 }

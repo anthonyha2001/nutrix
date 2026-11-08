@@ -19,6 +19,10 @@ export type ModuleIcon =
 
 export type Phase = 1 | 2 | 3 | 4;
 
+// Sidebar groups, in order.
+export type NavSection = "Daily work" | "Nutrition" | "Practice";
+export const NAV_SECTIONS: NavSection[] = ["Daily work", "Nutrition", "Practice"];
+
 export const PHASE_LABELS: Record<Phase, string> = {
   1: "Phase 1 · Core practice",
   2: "Phase 2 · Appointments and business",
@@ -34,11 +38,15 @@ export type Module = {
   summary: string;
   planned: string[];
   roles?: PracticeRole[];
+  section: NavSection;
+  // Not built yet: kept for the roadmap and its placeholder page, left out of the sidebar.
+  upcoming?: boolean;
 };
 
 export const MODULES: Module[] = [
   {
     href: "/dashboard",
+    section: "Daily work",
     label: "Overview",
     icon: "overview",
     phase: 1,
@@ -51,6 +59,7 @@ export const MODULES: Module[] = [
   },
   {
     href: "/dashboard/patients",
+    section: "Daily work",
     label: "Patients",
     icon: "patients",
     phase: 1,
@@ -65,6 +74,7 @@ export const MODULES: Module[] = [
   },
   {
     href: "/dashboard/meal-plans",
+    section: "Nutrition",
     label: "Meal plans",
     icon: "plans",
     phase: 1,
@@ -80,6 +90,7 @@ export const MODULES: Module[] = [
   },
   {
     href: "/dashboard/templates",
+    section: "Nutrition",
     label: "Templates",
     icon: "templates",
     phase: 1,
@@ -93,6 +104,7 @@ export const MODULES: Module[] = [
   },
   {
     href: "/dashboard/foods",
+    section: "Nutrition",
     label: "Foods & recipes",
     icon: "foods",
     phase: 1,
@@ -107,6 +119,7 @@ export const MODULES: Module[] = [
   },
   {
     href: "/dashboard/appointments",
+    section: "Daily work",
     label: "Appointments",
     icon: "appointments",
     phase: 2,
@@ -120,6 +133,7 @@ export const MODULES: Module[] = [
   },
   {
     href: "/dashboard/messages",
+    section: "Daily work",
     label: "Messages",
     icon: "messages",
     phase: 2,
@@ -129,6 +143,7 @@ export const MODULES: Module[] = [
   },
   {
     href: "/dashboard/billing",
+    section: "Practice",
     label: "Billing",
     icon: "billing",
     phase: 2,
@@ -143,6 +158,8 @@ export const MODULES: Module[] = [
   },
   {
     href: "/dashboard/reports",
+    section: "Nutrition",
+    upcoming: true,
     label: "Reports",
     icon: "reports",
     phase: 3,
@@ -157,6 +174,7 @@ export const MODULES: Module[] = [
   },
   {
     href: "/dashboard/team",
+    section: "Practice",
     label: "Team",
     icon: "team",
     phase: 1,
@@ -165,6 +183,7 @@ export const MODULES: Module[] = [
   },
   {
     href: "/dashboard/settings",
+    section: "Practice",
     label: "Settings",
     icon: "settings",
     phase: 1,
@@ -185,12 +204,13 @@ export function moduleFor(href: string) {
 }
 
 export function navFor(role: PracticeRole, counts: Partial<Record<string, number>> = {}, hidden: string[] = []) {
-  return MODULES.filter((m) => (!m.roles || m.roles.includes(role)) && !hidden.includes(m.href)).map(({ href, label, icon }) => ({
-    href,
-    label,
-    icon,
-    badge: counts[href] ? counts[href] : undefined,
-  }));
+  const visible = MODULES.filter((m) => !m.upcoming && (!m.roles || m.roles.includes(role)) && !hidden.includes(m.href));
+  // Grouped by section, keeping the list order inside each group.
+  return NAV_SECTIONS.flatMap((section) =>
+    visible
+      .filter((m) => m.section === section)
+      .map(({ href, label, icon }) => ({ href, label, icon, section, badge: counts[href] ? counts[href] : undefined })),
+  );
 }
 
 // Situations the daily briefing will flag (Phase 3). Each is a rule the

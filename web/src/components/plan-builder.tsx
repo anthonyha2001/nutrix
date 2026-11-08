@@ -40,7 +40,14 @@ export type BuilderMeta = {
   targets?: Targets;
 };
 
-export type BuilderSave = (input: BuilderMeta & { content: ReturnType<typeof daysToContent> }) => Promise<ActionState>;
+export type BuilderSave = (
+  input: BuilderMeta & { content: ReturnType<typeof daysToContent> },
+  options?: { give?: boolean },
+) => Promise<ActionState>;
+
+// Shown on drafts and new plans: save and hand the plan to the patient in one
+// step, instead of saving a draft and activating it from the list.
+export type GiveToPatient = { label: string; replaces?: string | null };
 
 const newKey = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Math.random()).slice(2));
 const SLOTS: MealSlot[] = ["breakfast", "snack", "lunch", "snack", "dinner"];
@@ -65,6 +72,7 @@ export function PlanBuilder({
   onSave,
   closeParams,
   readOnly = false,
+  give,
 }: {
   mode: "plan" | "template";
   kind?: TemplateKind;
@@ -74,6 +82,7 @@ export function PlanBuilder({
   onSave: BuilderSave;
   closeParams: string[];
   readOnly?: boolean;
+  give?: GiveToPatient;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -101,12 +110,13 @@ export function PlanBuilder({
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }
 
-  function save() {
+  async function save(options?: { give?: boolean }) {
     setError(null);
     if (!meta.name.trim()) return setError("Give it a name.");
     if (days.every((d) => d.meals.every((m) => m.items.length === 0))) return setError("Add at least one food.");
+    if (options?.give && give?.replaces && !(await confirm(`"${give.replaces}" moves to previous plans.`, { confirmLabel: give.label }))) return;
     startTransition(async () => {
-      const result = await onSave({ ...meta, content: daysToContent(days) });
+      const result = await onSave({ ...meta, content: daysToContent(days) }, options);
       if (result.error) setError(result.error);
       else {
         showToast(result.success ?? "Saved");
@@ -297,11 +307,21 @@ export function PlanBuilder({
           {days.length > 1 ? `Average day ${round(average.kcal)} kcal` : `${round(average.kcal)} kcal`}
           <span className="hidden sm:inline"> · numbers are computed from the food database when you save</span>
         </p>
-        {!readOnly && (
-          <Button type="button" onClick={save} disabled={pending}>
-            {pending ? "Saving…" : "Save"}
-          </Button>
-        )}
+        {!readOnly &&
+          (give ? (
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="secondary" onClick={() => save()} disabled={pending}>
+                Save draft
+              </Button>
+              <Button type="button" onClick={() => save({ give: true })} disabled={pending}>
+                {pending ? "Saving…" : give.label}
+              </Button>
+            </div>
+          ) : (
+            <Button type="button" onClick={() => save()} disabled={pending}>
+              {pending ? "Saving…" : "Save"}
+            </Button>
+          ))}
       </div>
       {error && <Alert tone="error">{error}</Alert>}
       {confirmDialog}
