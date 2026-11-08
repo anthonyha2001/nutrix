@@ -13,7 +13,7 @@ export type StaffMembership = {
 };
 
 // A practice where this user is a patient (Nutrix Patient app).
-export type PatientLink = { patientId: string; practiceId: string; fullName: string };
+export type PatientLink = { patientId: string; practiceId: string; fullName: string; practiceName: string; timezone: string };
 
 export type Viewer = {
   id: string;
@@ -39,7 +39,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
       .select("practice_id, role, practices(name, timezone, lbp_rate)")
       .eq("user_id", id)
       .order("created_at"),
-    supabase.from("patients").select("id, practice_id, full_name").eq("user_id", id).is("archived_at", null),
+    supabase.from("patients").select("id, practice_id, full_name, practices(name, timezone)").eq("user_id", id).is("archived_at", null).order("created_at"),
   ]);
 
   return {
@@ -53,7 +53,13 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
       timezone: r.practices?.timezone ?? "Asia/Beirut",
       lbpRate: Number(r.practices?.lbp_rate ?? 89500),
     })),
-    patientOf: (patientRows ?? []).map((r) => ({ patientId: r.id, practiceId: r.practice_id, fullName: r.full_name })),
+    patientOf: (patientRows ?? []).map((r) => ({
+      patientId: r.id,
+      practiceId: r.practice_id,
+      fullName: r.full_name,
+      practiceName: r.practices?.name ?? "",
+      timezone: r.practices?.timezone ?? "Asia/Beirut",
+    })),
   };
 });
 

@@ -123,6 +123,7 @@ export const MODULES: Module[] = [
     label: "Messages",
     icon: "messages",
     phase: 2,
+    roles: CLINICAL_ROLES,
     summary: "Private conversations with your patients.",
     planned: ["One thread per patient", "Shared from the patient app", "Unread counters in the sidebar"],
   },
@@ -183,8 +184,13 @@ export function moduleFor(href: string) {
   return m;
 }
 
-export function navFor(role: PracticeRole) {
-  return MODULES.filter((m) => !m.roles || m.roles.includes(role)).map(({ href, label, icon }) => ({ href, label, icon }));
+export function navFor(role: PracticeRole, counts: Partial<Record<string, number>> = {}) {
+  return MODULES.filter((m) => !m.roles || m.roles.includes(role)).map(({ href, label, icon }) => ({
+    href,
+    label,
+    icon,
+    badge: counts[href] ? counts[href] : undefined,
+  }));
 }
 
 // Situations the daily briefing will flag (Phase 3). Each is a rule the

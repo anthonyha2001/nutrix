@@ -1,9 +1,10 @@
+import type { ReactNode } from "react";
 import { Repeat } from "lucide-react";
 import { Card } from "@/components/ui";
-import { amountLabel, round, SLOT_LABELS, type SavedDay } from "@/lib/nutrition";
+import { amountLabel, round, SLOT_LABELS, type SavedDay, type SavedMeal } from "@/lib/nutrition";
 
 // One day of a saved plan, read-only (patient app).
-export function MealDay({ day }: { day: SavedDay }) {
+export function MealDay({ day, action }: { day: SavedDay; action?: (meal: SavedMeal) => ReactNode }) {
   return (
     <div className="space-y-3">
       {day.meals.map((meal) => (
@@ -35,6 +36,7 @@ export function MealDay({ day }: { day: SavedDay }) {
             ))}
           </ul>
           {meal.notes && <p className="px-5 pb-4 text-sm text-muted">{meal.notes}</p>}
+          {action && meal.items.length > 0 && <div className="flex justify-end border-t border-line px-4 py-2.5">{action(meal)}</div>}
         </Card>
       ))}
     </div>

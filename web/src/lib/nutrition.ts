@@ -180,7 +180,10 @@ export function daysToContent(days: PlanDay[]) {
   return {
     days: days.map((d) => ({
       label: d.label,
-      meals: d.meals.map((m) => ({ key: m.key, slot: m.slot, name: m.name, time: m.time, notes: m.notes, items: m.items.map(item) })),
+      // Meals left empty (no food and no note) are not saved.
+      meals: d.meals
+        .filter((m) => m.items.length > 0 || m.notes?.trim())
+        .map((m) => ({ key: m.key, slot: m.slot, name: m.name, time: m.time, notes: m.notes, items: m.items.map(item) })),
     })),
   };
 }

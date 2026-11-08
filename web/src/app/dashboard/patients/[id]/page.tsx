@@ -34,11 +34,16 @@ import {
   saveNote,
   updatePatient,
 } from "../actions";
+import { AppointmentDetail } from "../../appointments/appointment-detail";
+import { AppointmentsTab } from "./appointments-tab";
+import { BillingTab } from "./billing-tab";
+import { DiaryTab } from "./diary-tab";
 import { AllergyForm, FromTemplateForm, HealthForm, MeasurementForm, NoteForm, PatientForm, SaveAsTemplateForm } from "../forms";
 
 export const metadata: Metadata = { title: "Patient" };
 
-const TABS = ["overview", "plans", "measurements", "notes", "health"] as const;
+const TABS = ["overview", "plans", "diary", "measurements", "notes", "health", "appointments", "billing"] as const;
+const ASSISTANT_TABS = ["appointments", "billing"] as const;
 const ACTIVITY_LABELS: Record<string, string> = {
   sedentary: "Sedentary",
   light: "Lightly active",
@@ -112,14 +117,35 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
     </div>
   );
 
+  const billing = membership.role !== "dietitian";
+  const apptParam = typeof sp.appt === "string" ? sp.appt : null;
+
   if (!clinical) {
     return (
       <div className="space-y-6">
         {header}
         <Card className="flex items-start gap-3 p-5">
           <Lock className="mt-0.5 size-5 shrink-0 text-muted" />
-          <p className="text-sm text-muted">The clinical file (plans, measurements, notes, health history) is visible to the assigned dietitian and the practice owner only.</p>
+          <p className="text-sm text-muted">The clinical file (plans, diary, measurements, notes, health history) is visible to the assigned dietitian and the practice owner only.</p>
         </Card>
+        <PageTabs
+          instant
+          base={`/dashboard/patients/${id}`}
+          active={ASSISTANT_TABS.includes(sp.tab as (typeof ASSISTANT_TABS)[number]) ? (sp.tab as string) : "appointments"}
+          tabs={[
+            { id: "appointments", label: "Appointments" },
+            ...(billing ? [{ id: "billing", label: "Billing" }] : []),
+          ]}
+        />
+        <TabPanel id="appointments" tabs={ASSISTANT_TABS}>
+          <AppointmentsTab patientId={id} patientName={patient.full_name} membership={membership} />
+        </TabPanel>
+        {billing && (
+          <TabPanel id="billing" tabs={ASSISTANT_TABS}>
+            <BillingTab patientId={id} membership={membership} />
+          </TabPanel>
+        )}
+        {apptParam && <AppointmentDetail id={apptParam} membership={membership} />}
       </div>
     );
   }
@@ -166,9 +192,12 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
         tabs={[
           { id: "overview", label: "Overview" },
           { id: "plans", label: "Meal plans", count: plans?.filter((p) => p.status === "draft").length },
+          { id: "diary", label: "Diary" },
           { id: "measurements", label: "Measurements" },
           { id: "notes", label: "Notes" },
           { id: "health", label: "Health" },
+          { id: "appointments", label: "Appointments" },
+          ...(billing ? [{ id: "billing", label: "Billing" }] : []),
         ]}
       />
 
@@ -436,6 +465,23 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
           </Card>
         </div>
       </TabPanel>
+
+      {/* Diary */}
+      <TabPanel id="diary" tabs={TABS}>
+        <DiaryTab patientId={id} timeZone={membership.timezone} targets={active?.targets as Targets | undefined} />
+      </TabPanel>
+
+      <TabPanel id="appointments" tabs={TABS}>
+        <AppointmentsTab patientId={id} patientName={patient.full_name} membership={membership} />
+      </TabPanel>
+
+      {billing && (
+        <TabPanel id="billing" tabs={TABS}>
+          <BillingTab patientId={id} membership={membership} />
+        </TabPanel>
+      )}
+
+      {apptParam && <AppointmentDetail id={apptParam} membership={membership} />}
 
       {planParam && (planParam === "new" || openPlan) && (
         <RouteModal param="plan" size="xl" title={openPlan ? openPlan.name : "New meal plan"} description={openPlan?.status === "archived" ? "A previous plan. It can't be edited; give it again or save it as a template." : patient.full_name}>

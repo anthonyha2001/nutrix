@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Logo, Skeleton } from "@/components/ui";
 import { requirePatient } from "@/lib/session";
+import { createClient } from "@/lib/supabase/server";
 import { signOut } from "../(auth)/actions";
 import { PatientNav } from "./patient-nav";
 
@@ -26,9 +27,22 @@ export default function PatientLayout({ children }: LayoutProps<"/patient">) {
           <PatientGate>{children}</PatientGate>
         </Suspense>
       </main>
-      <PatientNav />
+      <Suspense fallback={<PatientNav />}>
+        <NavWithUnread />
+      </Suspense>
     </div>
   );
+}
+
+async function NavWithUnread() {
+  const { link } = await requirePatient();
+  const { count } = await (await createClient())
+    .from("messages")
+    .select("*", { count: "exact", head: true })
+    .eq("patient_id", link.patientId)
+    .eq("from_patient", false)
+    .is("read_at", null);
+  return <PatientNav unread={count ?? 0} />;
 }
 
 async function PatientGate({ children }: { children: React.ReactNode }) {

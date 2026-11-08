@@ -3,7 +3,7 @@ import type { Phase } from "@/lib/modules";
 // Screens of Nutrix Patient. Same idea as the professional MODULES list: one
 // source for the tab bar and each screen's placeholder.
 
-export type PatientIcon = "today" | "plan" | "diary" | "progress" | "messages" | "profile";
+export type PatientIcon = "today" | "plan" | "diary" | "progress" | "messages" | "appointments" | "profile";
 
 export type PatientScreen = {
   href: string;
@@ -65,6 +65,15 @@ export const PATIENT_SCREENS: PatientScreen[] = [
     tab: false,
     summary: "Talk to your dietitian.",
     planned: ["Private conversation with your dietitian", "Reminders and notifications"],
+  },
+  {
+    href: "/patient/appointments",
+    label: "Appointments",
+    icon: "appointments",
+    phase: 2,
+    tab: false,
+    summary: "Your visits, and asking for a new one.",
+    planned: [],
   },
   {
     href: "/patient/profile",

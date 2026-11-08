@@ -8,9 +8,34 @@ The operating system for dietitians. A sibling of Gymix: different product, same
 | **Nutrix Patient** | Patient app, delivered first as an installable web app (like the Gymix member portal) | `web/src/app/patient` |
 | **Nutrix Core** | Supabase: Postgres schema, row-level security, nutrition database, automation | `supabase/` |
 
-## Status: Phase 1 built
+## Status: Phases 1 and 2 built
 
-What works today:
+Phase 2 added:
+
+- **Appointments:** a week calendar (with a dietitian filter for owners and assistants), booking requests and an
+  upcoming list. Booking happens in a dialog, and a dietitian can't be double-booked (enforced by the database).
+  Each appointment opens a detail view with a pre-consultation summary (weight trend, plan, the last 7 days of
+  diary and check-ins, water, allergies, last note). From there you can confirm, move, cancel, mark attended or
+  no-show (from the appointment's day only), send a WhatsApp reminder, or add a consultation note.
+- **Business:** consultation services and packages (owner sets prices). Packages are sold from the patient file,
+  which creates an invoice. Attending counts against the package that expires soonest; without a package the
+  service price is billed. Payments are in USD, card, transfer, Whish, OMT, or LBP cash at the practice rate.
+  Refunds and voids keep invoice numbers without gaps. There are printable invoices and receipts, and an overview
+  of revenue per month, outstanding balances and packages ending within 14 days.
+- **Messages:** one private thread per patient with their clinicians (owner and assigned dietitian), with unread
+  counts in the sidebar and the patient app.
+- **Patient app:** Today (eaten so far, water, daily check-in, next appointment, "I ate this" per planned meal
+  with a choice of swaps), Diary (search and log any food, day by day), Progress (record weight, chart,
+  history), Messages, Appointments (request, cancel) and Profile (package consultations left).
+- **Patient file:** new Diary, Appointments and Billing tabs. Assistants get Appointments and Billing only.
+- **Tests:** `supabase/tests/phase2_test.sql` (double-booking, package use, billing, LBP conversion, who sees
+  money, messages and diary).
+
+Still to build: Reports (Phase 3), the daily briefing and follow-up rules (Phase 3), device imports (Phase 3),
+and meal photos and barcodes (Phase 4). Reminders are sent by hand on WhatsApp for now; automatic reminders come
+with the follow-up engine.
+
+What Phase 1 built:
 
 - **Accounts:** sign up, log in, practice onboarding. Staff invites and patient records are claimed automatically
   when that email signs up.
@@ -30,10 +55,7 @@ What works today:
 - **Tests:** `supabase/tests/rls_test.sql` and `phase1_test.sql` (access rules, snapshots, template privacy).
   A browser walkthrough of the whole flow passes (script kept outside the repo).
 
-Not built yet: Appointments, Messages, Billing and Reports are placeholders (`web/src/lib/modules.ts`). Diary,
-Progress, Messages and Profile in the patient app are placeholders too.
-
-### Known gaps in Phase 1
+### Known gaps
 
 - **Missing Lebanese staples:** USDA has no labneh, kaak or local cheeses. Until Nutrix has its own Lebanese product
   database, dietitians add these as practice foods from their labels. Nothing is aliased to an approximate food.
@@ -41,7 +63,9 @@ Progress, Messages and Profile in the patient app are placeholders too.
   soup are assumptions stated on each recipe. They should be reviewed by a dietitian before launch.
 - **Allergen tags are approximate:** tags on USDA foods are matched from food names. They help, but don't
   guarantee anything. Warnings cover the nine listed allergens only.
-- **Patient timezone:** the patient app uses Beirut time to decide which day of the plan is "today".
+- **Messages refresh every 5 seconds** while open (local Supabase runs without Realtime). Switch to Supabase
+  Realtime in production if instant delivery matters.
+- **One practice per patient account:** a patient linked to two practices sees the first one only.
 
 ## Design DNA (shared with Gymix)
 

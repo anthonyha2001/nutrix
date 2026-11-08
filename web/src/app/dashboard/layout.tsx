@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui";
 import { navFor } from "@/lib/modules";
 import { ROLE_LABELS } from "@/lib/roles";
 import { requireStaff } from "@/lib/session";
+import { createClient } from "@/lib/supabase/server";
 import { signOut } from "../(auth)/actions";
 import { NavLinks, NavSkeleton, Sidebar } from "./sidebar";
 
@@ -51,7 +52,16 @@ async function PracticeCard() {
 
 async function RoleNav() {
   const { membership } = await requireStaff();
-  return <NavLinks items={navFor(membership.role)} />;
+  const supabase = await createClient();
+  // Row-level security scopes both: requests the viewer may handle, and
+  // unread patient messages in threads they can read (clinicians only).
+  const [{ count: requests }, { count: unread }] = await Promise.all([
+    supabase.from("appointments").select("*", { count: "exact", head: true }).eq("practice_id", membership.practiceId).eq("status", "requested"),
+    membership.role === "assistant"
+      ? Promise.resolve({ count: 0 })
+      : supabase.from("messages").select("*", { count: "exact", head: true }).eq("from_patient", true).is("read_at", null),
+  ]);
+  return <NavLinks items={navFor(membership.role, { "/dashboard/appointments": requests ?? 0, "/dashboard/messages": unread ?? 0 })} />;
 }
 
 async function AccountCard() {

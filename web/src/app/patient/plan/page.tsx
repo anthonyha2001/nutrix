@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Plan" };
 
 export default async function PlanPage() {
   const { link } = await requirePatient();
-  const { plan } = await activePlan(link.patientId);
+  const plan = await activePlan(link.patientId);
 
   if (!plan) {
     return (

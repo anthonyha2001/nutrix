@@ -1,13 +1,14 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireStaff } from "@/lib/session";
+import { requireViewer } from "@/lib/session";
 import type { FoodHit } from "@/lib/nutrition";
 
 // Food search for the plan builder and the recipe editor. Row-level security
 // limits results to the shared library and the caller's practice.
 export async function searchFoods(query: string, limit = 25): Promise<FoodHit[]> {
-  await requireStaff();
+  // Staff and patients; row-level security limits what each can find.
+  await requireViewer();
   const q = query.trim().slice(0, 80);
   if (q.length < 2) return [];
   const supabase = await createClient();

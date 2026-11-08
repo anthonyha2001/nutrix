@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { BookOpenText, ChevronRight, Grid2x2, House, MessageCircle, NotebookPen, TrendingUp, UserRound, type LucideIcon } from "lucide-react";
+import { BookOpenText, CalendarDays, ChevronRight, Grid2x2, House, MessageCircle, NotebookPen, TrendingUp, UserRound, type LucideIcon } from "lucide-react";
 import { Modal } from "@/components/dialog";
 import { PATIENT_SCREENS, type PatientIcon } from "@/lib/patient-app";
 
@@ -13,6 +13,7 @@ const ICONS: Record<PatientIcon, LucideIcon> = {
   diary: NotebookPen,
   progress: TrendingUp,
   messages: MessageCircle,
+  appointments: CalendarDays,
   profile: UserRound,
 };
 
@@ -22,7 +23,7 @@ const MORE = PATIENT_SCREENS.filter((s) => !s.tab);
 const isActive = (pathname: string, href: string) => (href === "/patient" ? pathname === href : pathname.startsWith(href));
 
 // Bottom tab bar, same build as the Gymix member portal.
-export function PatientNav() {
+export function PatientNav({ unread = 0 }: { unread?: number }) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
   const moreActive = MORE.some((t) => isActive(pathname, t.href));
@@ -57,6 +58,11 @@ export function PatientNav() {
             <Grid2x2 className="size-5" strokeWidth={moreActive ? 2.25 : 1.75} />
           </span>
           <span className={label}>More</span>
+          {unread > 0 && (
+            <span className="absolute top-1.5 left-1/2 ml-2 grid h-4 min-w-4 place-items-center rounded-full bg-danger px-1 text-[10px] font-semibold text-white" aria-label={`${unread} unread`}>
+              {unread}
+            </span>
+          )}
         </button>
       </div>
 
@@ -79,6 +85,9 @@ export function PatientNav() {
                     <span className="block font-semibold">{t.label}</span>
                     <span className="block text-sm text-muted">{t.summary}</span>
                   </span>
+                  {t.icon === "messages" && unread > 0 && (
+                    <span className="grid h-5 min-w-5 place-items-center rounded-full bg-danger px-1.5 text-xs font-semibold text-white">{unread}</span>
+                  )}
                   <ChevronRight className="size-4 text-muted" />
                 </Link>
               </li>
