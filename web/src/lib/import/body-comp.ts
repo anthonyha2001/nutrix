@@ -30,28 +30,31 @@ export type BodyFile = { device: "inbody" | "tanita" | "manual"; rows: BodyRow[]
 
 // Header text (lowercase, units removed) -> what it holds.
 type Col = BodyField | "fat_mass_kg" | "water_l" | "date" | "time" | "name" | "id" | "height_cm" | "skip";
+// English and French (accents removed) column names.
 const HEADERS: [RegExp, Col][] = [
-  [/^(test )?date( ?\/ ?time)?$|^date of test$|^measurement date$|^datetime$|^test date ?time$/, "date"],
-  [/^time$|^test time$/, "time"],
-  [/^(name|client|client name|member name|patient|full name)$/, "name"],
-  [/^(id|client id|member id|user id)$/, "id"],
-  [/^height$/, "height_cm"],
-  [/^(body )?weight$|^wt$/, "weight_kg"],
-  [/^(pbf|percent body fat|body fat percentage|body fat ?%|fat ?%|body fat \(%\)|% ?body fat|bf%|fat percentage)$/, "body_fat_pct"],
-  [/^(bfm|body fat mass|fat mass)$/, "fat_mass_kg"],
-  [/^(smm|skeletal muscle mass|muscle mass|predicted muscle mass)$/, "muscle_mass_kg"],
-  [/^(tbw ?%|total body water ?%|body water ?%|water ?%|tbw percentage|body water percentage)$/, "body_water_pct"],
-  [/^(tbw|total body water|body water)$/, "water_l"],
-  [/^(visceral fat( level| rating)?|vfl|vfa|visceral fat area)$/, "visceral_fat"],
-  [/^(bmr|basal metabolic rate)$/, "bmr_kcal"],
-  [/^(waist|waist circumference)$/, "waist_cm"],
-  [/^(hip|hip circumference)$/, "hip_cm"],
+  [/^(test )?date( ?\/ ?time)?$|^date of test$|^measurement date$|^datetime$|^test date ?time$|^date (du test|de mesure|de la mesure|et heure)$/, "date"],
+  [/^time$|^test time$|^heure$/, "time"],
+  [/^(name|client|client name|member name|patient|full name|nom|nom du client|nom et prenom)$/, "name"],
+  [/^(id|client id|member id|user id|identifiant)$/, "id"],
+  [/^(height|taille|hauteur)$/, "height_cm"],
+  [/^(body )?weight$|^wt$|^poids( corporel)?$/, "weight_kg"],
+  [/^(pbf|percent body fat|body fat percentage|body fat ?%|fat ?%|body fat \(%\)|% ?body fat|bf%|fat percentage|pourcentage de graisse( corporelle)?|% ?graisse( corporelle)?|graisse corporelle ?%|masse grasse ?%|mg ?%)$/, "body_fat_pct"],
+  [/^(bfm|body fat mass|fat mass|masse grasse|masse de graisse corporelle)$/, "fat_mass_kg"],
+  [/^(smm|skeletal muscle mass|muscle mass|predicted muscle mass|masse musculaire squelettique|masse musculaire|mms)$/, "muscle_mass_kg"],
+  [/^(tbw ?%|total body water ?%|body water ?%|water ?%|tbw percentage|body water percentage|eau corporelle( totale)? ?%|% ?eau( corporelle)?)$/, "body_water_pct"],
+  [/^(tbw|total body water|body water|eau corporelle totale|eau corporelle|ect)$/, "water_l"],
+  [/^(visceral fat( level| rating)?|vfl|vfa|visceral fat area|(niveau de )?graisse viscerale|indice de graisse viscerale)$/, "visceral_fat"],
+  [/^(bmr|basal metabolic rate|metabolisme de base|mb)$/, "bmr_kcal"],
+  [/^(waist|waist circumference|tour de taille)$/, "waist_cm"],
+  [/^(hip|hip circumference|tour de hanches?)$/, "hip_cm"],
 ];
 
-// "Weight (kg)" -> { text: "weight", unit: "kg" }
+const deaccent = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+// "Weight (kg)" -> { text: "weight", unit: "kg" }; "Poids (kg)" -> { text: "poids", unit: "kg" }
 function header(h: string) {
   const unit = (h.match(/\(([^)]*)\)|\[([^\]]*)\]/)?.slice(1).find(Boolean) ?? "").trim().toLowerCase();
-  const text = h.toLowerCase().replace(/\([^)]*\)|\[[^\]]*\]/g, (m) => (m.includes("%") ? "%" : "")).replace(/[_\s]+/g, " ").trim();
+  const text = deaccent(h.toLowerCase()).replace(/\([^)]*\)|\[[^\]]*\]/g, (m) => (m.includes("%") ? "%" : "")).replace(/[_\s]+/g, " ").trim();
   return { text, unit };
 }
 
@@ -110,19 +113,21 @@ const sameName = (a: string, b: string) => {
 
 // ---- Printed result sheets (an InBody/Tanita sheet as PDF, or a transcribed photo)
 
+// English and French (accents removed); lines are matched without accents.
 const LINE_FIELDS: [RegExp, BodyField | "fat_mass_kg" | "water_l"][] = [
-  [/\b(percent body fat|pbf|body fat percentage|body fat ?%|fat ?%)\b/i, "body_fat_pct"],
-  [/\b(body fat mass|fat mass|bfm)\b/i, "fat_mass_kg"],
-  [/\b(skeletal muscle mass|smm|muscle mass)\b/i, "muscle_mass_kg"],
-  [/\b(total body water|tbw|body water)\b/i, "water_l"],
-  [/\b(visceral fat( level| rating)?|vfl)\b/i, "visceral_fat"],
-  [/\b(basal metabolic rate|bmr)\b/i, "bmr_kcal"],
-  [/\b(waist circumference)\b/i, "waist_cm"],
-  [/\b(hip circumference)\b/i, "hip_cm"],
-  [/\b(body weight|weight)\b/i, "weight_kg"],
+  [/\b(percent body fat|pbf|body fat percentage|body fat ?%|fat ?%|pourcentage de graisse( corporelle)?|taux de graisse)\b/i, "body_fat_pct"],
+  [/\b(body fat mass|fat mass|bfm|masse grasse)\b/i, "fat_mass_kg"],
+  [/\b(skeletal muscle mass|smm|muscle mass|masse musculaire( squelettique)?)\b/i, "muscle_mass_kg"],
+  [/\b(total body water|tbw|body water|eau corporelle( totale)?)\b/i, "water_l"],
+  [/\b(visceral fat( level| rating)?|vfl|(niveau de )?graisse viscerale)\b/i, "visceral_fat"],
+  [/\b(basal metabolic rate|bmr|metabolisme de base)\b/i, "bmr_kcal"],
+  [/\b(waist circumference|tour de taille)\b/i, "waist_cm"],
+  [/\b(hip circumference|tour de hanches?)\b/i, "hip_cm"],
+  [/\b(body weight|weight|poids)\b/i, "weight_kg"],
 ];
 // Lines about targets, history or one limb are not today's whole-body result.
-const NOT_RESULT = /\b(target|control|ideal|recommended|history|normal|standard|segmental|right|left|arm|leg|trunk|change|goal|range)\b/i;
+const NOT_RESULT =
+  /\b(target|control|ideal|recommended|history|normal|standard|segmental|right|left|arm|leg|trunk|change|goal|range|objectif|controle|recommande|historique|segmentaire|droit|droite|gauche|bras|jambe|tronc|evolution|plage)\b/i;
 
 export function readBodyLines(lines: string[], patientName: string, docName: string | null, date: string | null, today: string): BodyFile {
   const values: Partial<Record<BodyField, number>> = {};
@@ -130,7 +135,8 @@ export function readBodyLines(lines: string[], patientName: string, docName: str
   const warnings: string[] = [];
   let fatMass: number | null = null, waterL: number | null = null, waterPct = false;
   for (const raw of lines) {
-    const line = raw.replace(/\s+/g, " ").trim();
+    // Matched without accents ("Métabolisme de base"); French decimal commas are handled below.
+    const line = deaccent(raw).replace(/\s+/g, " ").trim();
     if (!line || line.length > 160 || NOT_RESULT.test(line)) continue;
     const hit = LINE_FIELDS.find(([re]) => re.test(line));
     if (!hit) continue;

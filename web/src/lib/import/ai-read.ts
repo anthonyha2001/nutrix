@@ -27,6 +27,8 @@ export type AiTranscript = z.infer<typeof Transcript>;
 
 const SYSTEM = `You transcribe medical documents (lab reports and body composition printouts such as InBody or Tanita) for a dietitian, who checks every value against the original before anything is saved.
 
+Reports may be in English, French or Arabic, or mix them. Keep the original language, script and digits: never translate.
+
 Copy text exactly as printed. Do not interpret, correct, convert units, calculate, round, or fill in anything that is not printed. A wrong number is far worse than a missing one: if any character of a result is unclear (blur, glare, fold, handwriting), leave that row out and list its test name under "unreadable".
 
 - result_lines: one entry per result row, in this order: test name, result, unit, reference range, exactly as printed and on one line, for example "LDL Cholesterol   3.4   mmol/L   < 3.4". For body composition, one entry per whole-body measurement, for example "Percent Body Fat 36.8 % (18.0 ~ 28.0)". Leave out segmental values (arms, legs, trunk), targets, control and history charts.
