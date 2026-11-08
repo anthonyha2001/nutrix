@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { AlertTriangle, ArrowLeft, CalendarPlus, Lock, MessageCircle, NotebookTabs, PenLine, Plus, Scale, Smartphone } from "lucide-react";
 import { hasFeature } from "@/lib/features";
 import { guessGoal, suggestTargets, type TargetProfile } from "@/lib/energy";
@@ -41,6 +42,7 @@ import { AppointmentDetail } from "../../appointments/appointment-detail";
 import { AppointmentsTab } from "./appointments-tab";
 import { BillingTab } from "./billing-tab";
 import { DiaryTab } from "./diary-tab";
+import { PatientWhatsApp } from "./patient-whatsapp";
 import { AllergyForm, FromTemplateForm, HealthForm, MeasurementForm, NoteForm, PatientForm, SaveAsTemplateForm } from "../forms";
 
 export const metadata: Metadata = { title: "Patient" };
@@ -57,7 +59,7 @@ const ACTIVITY_LABELS: Record<string, string> = {
 const STATUS = { active: { label: "Active", tone: "green" }, draft: { label: "Draft", tone: "amber" }, archived: { label: "Previous", tone: "gray" } } as const;
 
 export default async function PatientPage({ params, searchParams }: PageProps<"/dashboard/patients/[id]">) {
-  const { membership } = await requireStaff();
+  const { viewer, membership } = await requireStaff();
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const supabase = await createClient();
 
@@ -112,6 +114,9 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
               <InviteShare url={appUrl} phone={patient.phone} message={patientInviteMessage(firstName, membership.practiceName, appUrl)} />
             </Dialog>
           )}
+          <Suspense fallback={null}>
+            <PatientWhatsApp patient={patient} membership={membership} senderName={viewer.fullName || null} />
+          </Suspense>
           <Dialog label="Edit details" variant="secondary" title="Edit patient">
             <PatientForm action={updatePatient.bind(null, patient.id)} patient={patient} />
           </Dialog>
