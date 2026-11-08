@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { addDays, APPOINTMENT_STATUS, dayLabel, formatTime, formatWhen, isoToLocal, localToIso, weekStart } from "@/lib/time";
 import { bookAppointment } from "./actions";
 import { AppointmentDetail } from "./appointment-detail";
+import { AppointmentBlock, CalendarInteractions, DaySlots } from "./calendar-interactions";
 import { BookForm } from "./forms";
 
 export const metadata: Metadata = { title: "Appointments" };
@@ -130,6 +131,13 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/das
         </div>
 
         <Card className="mt-4 overflow-x-auto">
+          <CalendarInteractions
+            grid={{ startHour: START_HOUR, endHour: END_HOUR, hourPx: HOUR_PX }}
+            patients={(patients ?? []).map((p) => ({ id: p.id, name: p.full_name }))}
+            services={(services ?? []).map((s) => ({ ...s, price_usd: Number(s.price_usd) }))}
+            dietitians={team}
+            dietitianId={dietitianFilter || undefined}
+          >
           <div className="grid min-w-[860px]" style={{ gridTemplateColumns: "3.5rem repeat(7, minmax(0, 1fr))" }}>
             <div className="border-b border-line" />
             {days.map((d) => (
@@ -147,8 +155,9 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/das
             {days.map((d) => (
               <div key={d} className={`relative border-l border-line ${d === today ? "bg-brand/5" : ""}`} style={{ height: hours.length * HOUR_PX }}>
                 {hours.map((h, i) => (
-                  <div key={h} className="absolute inset-x-0 border-t border-line/70" style={{ top: i * HOUR_PX }} />
+                  <div key={h} className="pointer-events-none absolute inset-x-0 border-t border-line/70" style={{ top: i * HOUR_PX }} />
                 ))}
+                <DaySlots date={d} />
                 {(week ?? [])
                   .filter((a) => isoToLocal(a.starts_at, tz).date === d)
                   .map((a) => {
@@ -157,24 +166,26 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/das
                     const top = Math.max(0, ((s - START_HOUR * 60) / 60) * HOUR_PX);
                     const height = Math.max(22, ((Math.min(e, END_HOUR * 60) - Math.max(s, START_HOUR * 60)) / 60) * HOUR_PX - 2);
                     return (
-                      <Link
+                      <AppointmentBlock
                         key={a.id}
                         href={link({ appt: a.id })}
-                        scroll={false}
-                        className={`absolute inset-x-1 overflow-hidden rounded-md border px-1.5 py-1 text-[11px] leading-tight transition hover:shadow-md ${TONE_CLASS[a.status]}`}
+                        movable={a.status === "confirmed" || a.status === "requested"}
+                        moving={{ id: a.id, name: a.patients?.full_name ?? "this appointment", minutes: Math.round(e - s) }}
+                        className={`absolute inset-x-1 z-10 overflow-hidden rounded-md border px-1.5 py-1 text-[11px] leading-tight transition hover:shadow-md ${TONE_CLASS[a.status]}`}
                         style={{ top, height }}
                       >
                         <span className="block font-semibold">{formatTime(a.starts_at, tz)}</span>
                         <span className="block truncate">{a.patients?.full_name}</span>
                         {a.online && <Video className="absolute top-1 right-1 size-3" aria-label="Online" />}
-                      </Link>
+                      </AppointmentBlock>
                     );
                   })}
               </div>
             ))}
           </div>
+          </CalendarInteractions>
         </Card>
-        <p className="mt-2 text-xs text-muted">Times in {tz.replace(/_/g, " ")}. Appointments outside {START_HOUR}:00 to {END_HOUR}:00 are in Upcoming.</p>
+        <p className="mt-2 text-xs text-muted">Click an empty time to book it, or drag an appointment to move it. Times in {tz.replace(/_/g, " ")}. Appointments outside {START_HOUR}:00 to {END_HOUR}:00 are in Upcoming.</p>
       </TabPanel>
 
       <TabPanel id="requests" tabs={TABS}>

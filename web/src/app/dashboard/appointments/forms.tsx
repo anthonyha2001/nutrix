@@ -33,7 +33,7 @@ export function BookForm({
   services: Service[];
   // Shown to owners and assistants; empty for a dietitian (books for themselves).
   dietitians: Option[];
-  defaults: { date: string; time: string; patientId?: string };
+  defaults: { date: string; time: string; patientId?: string; dietitianId?: string };
 }) {
   const [state, formAction, pending] = useDialogAction(action, {});
   const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
@@ -78,7 +78,7 @@ export function BookForm({
       </div>
       {dietitians.length > 0 && (
         <Field label="Dietitian" hint="Leave as is to use the patient's dietitian.">
-          <select name="dietitian_id" defaultValue="" className={inputClass}>
+          <select name="dietitian_id" defaultValue={defaults.dietitianId ?? ""} className={inputClass}>
             <option value="">Patient&apos;s dietitian</option>
             {dietitians.map((d) => (
               <option key={d.id} value={d.id}>
