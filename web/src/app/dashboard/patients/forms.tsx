@@ -264,21 +264,41 @@ export function NoteForm({ action, today, note }: { action: Action; today: strin
   );
 }
 
-export function FromTemplateForm({ action, templates }: { action: Action; templates: { id: string; name: string; kind: string; kcal: number | null }[] }) {
+export function FromTemplateForm({
+  action,
+  templates,
+  target,
+}: {
+  action: Action;
+  templates: { id: string; name: string; kind: string; kcal: number | null }[];
+  // The patient's suggested energy: templates closest to it come first.
+  target?: { kcal: number; firstName: string };
+}) {
   const [state, formAction, pending] = useDialogAction(action, {});
+  const distance = (kcal: number | null) => (target && kcal ? Math.abs(kcal - target.kcal) : Number.POSITIVE_INFINITY);
+  const sorted = target ? [...templates].sort((a, b) => distance(a.kcal) - distance(b.kcal)) : templates;
+  const close = (kcal: number | null) => target && kcal !== null && distance(kcal) <= target.kcal * 0.1;
   if (templates.length === 0) {
     return <p className="text-sm text-muted">You have no templates yet. Build one in Templates, or save any plan as a template.</p>;
   }
   return (
     <form action={formAction} className="space-y-4">
       {state.error && <Alert tone="error">{state.error}</Alert>}
-      <Field label="Template" hint="The plan is a copy: changing the template later won't change it.">
+      <Field
+        label="Template"
+        hint={
+          target
+            ? `Closest to ${target.firstName}'s suggested ${target.kcal.toLocaleString("en-US")} kcal first. The plan is a copy: changing the template later won't change it.`
+            : "The plan is a copy: changing the template later won't change it."
+        }
+      >
         <SearchSelect name="template_id" required defaultValue="">
           <option value="" disabled>
             Choose a template
           </option>
-          {templates.map((t) => (
+          {sorted.map((t) => (
             <option key={t.id} value={t.id}>
+              {close(t.kcal) ? "Close match: " : ""}
               {t.name} ({t.kind}
               {t.kcal ? `, ${t.kcal} kcal` : ""})
             </option>

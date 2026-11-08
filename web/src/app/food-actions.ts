@@ -48,6 +48,72 @@ export async function searchFoods(query: string, limit = 25): Promise<FoodHit[]>
   return withServings(foods ?? []);
 }
 
+export type SwapSuggestion = { food: FoodHit; grams: number };
+
+// Foods that could stand in for `foodId` at about the same energy: same
+// category, closest balance of protein, carbs and fat, none of the patient's
+// allergens. Each comes with the amount that matches `kcal`. Generic foods and
+// the practice's own foods only (packaged products are too many and too alike).
+export async function suggestSwaps(foodId: string, kcal: number, avoid: string[] = []): Promise<SwapSuggestion[]> {
+  await requireViewer();
+  const supabase = await createClient();
+  const { data: food } = await supabase.from("foods").select("id, name, category, kcal, protein_g, carbs_g, fat_g").eq("id", foodId).maybeSingle();
+  if (!food || !(kcal > 0)) return [];
+  const { data: candidates } = await supabase
+    .from("foods")
+    .select("id, name, category, brand, is_recipe, source, kcal, protein_g, carbs_g, fat_g, fiber_g, allergens")
+    .eq("category", food.category)
+    .eq("branded", false)
+    .is("archived_at", null)
+    .neq("id", foodId)
+    .gt("kcal", 5)
+    .limit(600);
+
+  const share = (f: { protein_g: number; carbs_g: number; fat_g: number }) => {
+    const p = Number(f.protein_g) * 4, c = Number(f.carbs_g) * 4, fat = Number(f.fat_g) * 9;
+    const t = p + c + fat || 1;
+    return [p / t, c / t, fat / t];
+  };
+  const target = share(food);
+  // "Chicken breast, roasted" and "Chicken breast, grilled" aren't real alternatives to each other.
+  const stem = (name: string) => name.toLowerCase().split(/[,(]/)[0].trim().split(/\s+/).slice(0, 2).join(" ");
+  const own = stem(food.name);
+  // Cooked rice shouldn't be swapped for flour, nor a ready food for a dry mix.
+  const state = (name: string) =>
+    /\b(raw|dry|dried|uncooked|unprepared|flour|meal|crude|powder|mix|dehydrated|concentrate)\b/i.test(name)
+      ? "raw"
+      : /\b(cooked|boiled|baked|roasted|grilled|broiled|fried|steamed|stewed|braised|prepared|toasted|canned|ready-to-eat|rotisserie)\b/i.test(name)
+        ? "cooked"
+        : "any";
+  const ownState = state(food.name);
+  const baseGrams = (kcal / Number(food.kcal)) * 100;
+
+  const seen = new Set<string>([own]);
+  const ranked = (candidates ?? [])
+    .filter((c) => !c.allergens.some((a) => avoid.includes(a)))
+    .map((c) => {
+      const s = share(c);
+      const balance = Math.abs(s[0] - target[0]) + Math.abs(s[1] - target[1]) + Math.abs(s[2] - target[2]);
+      // Similar energy density gives a similar-looking portion.
+      const density = Math.abs(Math.log(Number(c.kcal) / Number(food.kcal)));
+      const cs = state(c.name);
+      const mismatch = ownState !== "any" && cs !== "any" && cs !== ownState;
+      const grams = Math.round(((kcal / Number(c.kcal)) * 100) / 5) * 5;
+      return { c, distance: balance + 0.35 * density, grams, mismatch };
+    })
+    .filter((x) => !x.mismatch && x.grams >= 5 && x.grams <= 600 && x.grams >= baseGrams / 3 && x.grams <= baseGrams * 3)
+    .sort((a, b) => a.distance - b.distance || a.c.name.length - b.c.name.length)
+    .filter((x) => {
+      const k = stem(x.c.name);
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    })
+    .slice(0, 6);
+  const hits = await withServings(ranked.map((x) => x.c));
+  return hits.map((h, i) => ({ food: h, grams: ranked[i].grams }));
+}
+
 // Saving a looked-up product needs the server's service key. Without it the
 // online search is hidden, since its results couldn't be used.
 function onlineEnabled() {

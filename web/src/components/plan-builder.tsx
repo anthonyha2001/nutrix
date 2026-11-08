@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { AlertTriangle, ArrowDown, ArrowUp, ChevronDown, ChevronRight, Copy, Plus, Repeat, Trash2, X } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, ChevronDown, ChevronRight, Copy, Plus, Repeat, Sparkles, Trash2, X } from "lucide-react";
+import { GOALS, guessGoal, missingForTargets, suggestTargets, type Goal, type TargetProfile } from "@/lib/energy";
 import { useConfirm } from "@/components/confirm";
+import { planChecks } from "@/lib/plan-checks";
+import { suggestSwaps, type SwapSuggestion } from "@/app/food-actions";
 import { FoodSearch } from "@/components/food-search";
 import { MacroSummary } from "@/components/macro-summary";
 import { showToast } from "@/components/toaster";
@@ -16,6 +19,7 @@ import {
   dayMacros,
   daysToContent,
   defaultItem,
+  foodToItem,
   itemMacros,
   mealMacros,
   round,
@@ -73,6 +77,7 @@ export function PlanBuilder({
   closeParams,
   readOnly = false,
   give,
+  profile,
 }: {
   mode: "plan" | "template";
   kind?: TemplateKind;
@@ -83,6 +88,8 @@ export function PlanBuilder({
   closeParams: string[];
   readOnly?: boolean;
   give?: GiveToPatient;
+  // The patient's numbers, for suggested targets (plans only).
+  profile?: TargetProfile;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -100,6 +107,9 @@ export function PlanBuilder({
   const allTotals = sumMacros(days.map(dayMacros));
   const average = { ...allTotals, kcal: allTotals.kcal / days.length, protein_g: allTotals.protein_g / days.length, carbs_g: allTotals.carbs_g / days.length, fat_g: allTotals.fat_g / days.length, fiber_g: allTotals.fiber_g / days.length };
 
+  const checks = mode === "plan" && !readOnly ? planChecks(days, meta.targets, patientAllergies, give?.label.replace(/^Give to /, "")) : [];
+  const [checksOpen, setChecksOpen] = useState(true);
+
   const updateDay = (fn: (d: PlanDay) => PlanDay) => setDays((all) => all.map((d, i) => (i === dayIndex ? fn(d) : d)));
   const updateMeal = (key: string, fn: (m: PlanMeal) => PlanMeal) => updateDay((d) => ({ ...d, meals: d.meals.map((m) => (m.key === key ? fn(m) : m)) }));
 
@@ -114,7 +124,14 @@ export function PlanBuilder({
     setError(null);
     if (!meta.name.trim()) return setError("Give it a name.");
     if (days.every((d) => d.meals.every((m) => m.items.length === 0))) return setError("Add at least one food.");
-    if (options?.give && give?.replaces && !(await confirm(`"${give.replaces}" moves to previous plans.`, { confirmLabel: give.label }))) return;
+    if (options?.give) {
+      const warnings = checks.filter((c) => c.level === "warning");
+      const lines = [
+        warnings.length ? `${warnings.length} thing${warnings.length > 1 ? "s" : ""} to check: ${warnings.map((w) => w.text).join(" ")}` : null,
+        give?.replaces ? `"${give.replaces}" moves to previous plans.` : null,
+      ].filter(Boolean);
+      if (lines.length && !(await confirm(lines.join("\n\n"), { confirmLabel: warnings.length ? `${give?.label} anyway` : give?.label }))) return;
+    }
     startTransition(async () => {
       const result = await onSave({ ...meta, content: daysToContent(days) }, options);
       if (result.error) setError(result.error);
@@ -181,7 +198,10 @@ export function PlanBuilder({
 
       {mode === "plan" && (
         <div className="rounded-xl border border-line p-4">
-          <p className="mb-3 text-sm font-medium">Daily targets</p>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-medium">Daily targets</p>
+            {profile && !readOnly && <TargetSuggest profile={profile} onUse={(targets) => setMeta((m) => ({ ...m, targets }))} />}
+          </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {(
               [
@@ -299,6 +319,27 @@ export function PlanBuilder({
             className={`${inputClass} h-auto py-2.5`}
           />
         </Field>
+      )}
+
+      {checks.length > 0 && (
+        <div className={`rounded-xl border p-4 ${checks.some((c) => c.level === "warning") ? "border-amber-300 bg-amber-50" : "border-line bg-canvas"}`}>
+          <button type="button" onClick={() => setChecksOpen((o) => !o)} className="flex w-full items-center gap-2 text-left text-sm font-medium" aria-expanded={checksOpen}>
+            <AlertTriangle className="size-4 shrink-0" />
+            <span className="flex-1">
+              {checks.length} thing{checks.length > 1 ? "s" : ""} to check before giving this plan
+            </span>
+            {checksOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+          </button>
+          {checksOpen && (
+            <ul className="mt-2 space-y-1 pl-6 text-sm">
+              {checks.map((c, i) => (
+                <li key={i} className={c.level === "warning" ? "list-disc" : "list-disc text-muted"}>
+                  {c.text}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
 
       {/* Footer */}
@@ -520,12 +561,137 @@ function ItemRow({
               />
             ))}
           </ul>
+          <SwapSuggestions
+            item={item}
+            avoid={patientAllergies}
+            taken={[item.food_id, ...swaps.map((s) => s.food_id)]}
+            canAdd={swaps.length < 10}
+            onAdd={(s) => onChange((it) => ({ ...it, alternatives: [...swaps, s] }))}
+            onReplace={(s) => onChange((it) => ({ ...s, alternatives: it.alternatives }))}
+          />
           {swaps.length < 10 && (
-            <FoodSearch placeholder="Add a swap" onPick={(f) => onChange((it) => ({ ...it, alternatives: [...swaps, defaultItem(f)] }))} />
+            <FoodSearch placeholder="Or search a swap" onPick={(f) => onChange((it) => ({ ...it, alternatives: [...swaps, defaultItem(f)] }))} />
           )}
         </div>
       )}
     </li>
+  );
+}
+
+// Targets computed from the patient's weight, height, age, sex and activity.
+function TargetSuggest({ profile, onUse }: { profile: TargetProfile; onUse: (t: Targets) => void }) {
+  const [open, setOpen] = useState(false);
+  const [goal, setGoal] = useState<Goal>(guessGoal(profile.goalText));
+  const missing = missingForTargets(profile);
+  const s = suggestTargets(profile, goal);
+
+  if (missing.length) {
+    return <p className="text-xs text-muted">Add {profile.firstName}&apos;s {missing.join(", ")} to get suggested targets.</p>;
+  }
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-brand-strong hover:bg-canvas">
+        <Sparkles className="size-3.5" /> Suggest from {profile.firstName}&apos;s data
+      </button>
+    );
+  }
+  return (
+    <div className="w-full space-y-3 rounded-lg bg-canvas p-3">
+      <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Goal">
+        {GOALS.map((g) => (
+          <button
+            key={g.id}
+            type="button"
+            role="radio"
+            aria-checked={goal === g.id}
+            onClick={() => setGoal(g.id)}
+            className={`h-8 rounded-lg px-3 text-xs font-medium ${goal === g.id ? "bg-ink text-white" : "bg-surface text-ink/80 hover:text-ink"}`}
+          >
+            {g.label}
+          </button>
+        ))}
+      </div>
+      {s && (
+        <>
+          <p className="text-sm font-medium tabular-nums">
+            {s.targets.kcal.toLocaleString("en-US")} kcal · P {s.targets.protein_g} g · C {s.targets.carbs_g} g · F {s.targets.fat_g} g
+          </p>
+          <p className="text-xs text-muted">{s.explanation} A starting point: adjust to the patient.</p>
+          <div className="flex gap-2">
+            <Button type="button" onClick={() => { onUse(s.targets); setOpen(false); }}>
+              Use these
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Ready-made alternatives at the same energy, loaded when the swaps panel opens.
+function SwapSuggestions({
+  item,
+  avoid,
+  taken,
+  canAdd,
+  onAdd,
+  onReplace,
+}: {
+  item: PlanItem;
+  avoid: string[];
+  taken: string[];
+  canAdd: boolean;
+  onAdd: (s: PlanItem) => void;
+  onReplace: (s: PlanItem) => void;
+}) {
+  const kcal = round(itemMacros(item).kcal);
+  const [state, setState] = useState<{ key: string; list: SwapSuggestion[] } | null>(null);
+  const key = `${item.food_id}|${kcal}`;
+  const [pending, start] = useTransition();
+
+  useEffect(() => {
+    if (state?.key === key || kcal <= 0) return;
+    start(async () => setState({ key, list: await suggestSwaps(item.food_id, kcal, avoid) }));
+    // Reload only when the food or its energy changes.
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const list = (state?.list ?? []).filter((s) => !taken.includes(s.food.id));
+  if (pending && !state) return <p className="text-xs text-muted">Finding similar foods…</p>;
+  if (!list.length) return null;
+  const toItem = (s: SwapSuggestion) => ({ ...foodToItem(s.food, s.grams), serving: null });
+
+  return (
+    <div>
+      <p className="mb-1.5 text-xs font-medium text-muted">Similar foods at about {kcal} kcal</p>
+      <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
+        {list.map((s) => {
+          const m = itemMacros({ grams: s.grams, per100: toItem(s).per100 });
+          return (
+            <li key={s.food.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2">
+              <span className="min-w-0 flex-1 basis-48">
+                <span className="block text-sm">{s.food.name}</span>
+                <span className="block text-xs text-muted tabular-nums">
+                  {s.grams} g · {round(m.kcal)} kcal · P {round(m.protein_g, 1)} · C {round(m.carbs_g, 1)} · F {round(m.fat_g, 1)}
+                </span>
+              </span>
+              <span className="flex gap-1">
+                {canAdd && (
+                  <button type="button" onClick={() => onAdd(toItem(s))} className="h-8 rounded-lg px-2.5 text-xs font-medium hover:bg-canvas">
+                    Add as swap
+                  </button>
+                )}
+                <button type="button" onClick={() => onReplace(toItem(s))} className="h-8 rounded-lg px-2.5 text-xs font-medium text-muted hover:bg-canvas hover:text-ink">
+                  Replace
+                </button>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AlertTriangle, ArrowLeft, CalendarPlus, Lock, MessageCircle, NotebookTabs, PenLine, Plus, Scale, Smartphone } from "lucide-react";
 import { hasFeature } from "@/lib/features";
+import { guessGoal, suggestTargets, type TargetProfile } from "@/lib/energy";
 import { ActionButton } from "@/components/action-button";
 import { Dialog } from "@/components/dialog";
 import { InviteShare } from "@/components/invite-share";
@@ -171,6 +172,17 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
   const planParam = typeof sp.plan === "string" ? sp.plan : null;
   const openPlan = planParam && planParam !== "new" ? plans?.find((p) => p.id === planParam) : null;
   const totalsOf = (c: unknown) => (c as SavedContent | null)?.totals;
+  // The patient's numbers, for suggested targets in the builder and the closest templates.
+  const profile: TargetProfile = {
+    firstName,
+    weightKg: latest ? Number(latest.weight_kg) : null,
+    heightCm: health?.height_cm ? Number(health.height_cm) : null,
+    age,
+    sex: patient.sex,
+    activity: health?.activity_level ?? null,
+    goalText: health?.goal ?? null,
+  };
+  const suggested = suggestTargets(profile, guessGoal(health?.goal));
 
   return (
     <div className="space-y-6">
@@ -289,6 +301,7 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
             <FromTemplateForm
               action={planFromTemplate.bind(null, id)}
               templates={(templates ?? []).map((t) => ({ id: t.id, name: t.name, kind: t.kind, kcal: totalsOf(t.content)?.kcal ?? null }))}
+              target={suggested ? { kcal: suggested.targets.kcal, firstName } : undefined}
             />
           </Dialog>
           <Link href={`/dashboard/patients/${id}?tab=plans&plan=new`} scroll={false} className={buttonClass("primary")}>
@@ -544,10 +557,11 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
                     notes: openPlan.notes ?? "",
                     targets: openPlan.targets as Targets,
                   }
-                : { name: `${firstName}'s plan`, targets: {} }
+                : { name: `${firstName}'s plan`, targets: suggested?.targets ?? {} }
             }
             initialDays={openPlan ? contentToDays(openPlan.content as SavedContent) : []}
             onSave={savePlanAction.bind(null, id, openPlan?.id ?? null)}
+            profile={profile}
             give={!openPlan || openPlan.status === "draft" ? { label: `Give to ${firstName}`, replaces: active && active.id !== openPlan?.id ? active.name : null } : undefined}
           />
         </RouteModal>

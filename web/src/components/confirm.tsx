@@ -41,7 +41,7 @@ export function useConfirm(): [ReactNode, (message: string, options?: ConfirmOpt
                 <AlertTriangle className="size-5" />
               </span>
             )}
-            <p className="text-sm">{state.message}</p>
+            <p className="text-sm whitespace-pre-line">{state.message}</p>
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => finish(false)}>
