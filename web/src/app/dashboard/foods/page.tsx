@@ -7,6 +7,7 @@ import { PageTabs, TabPanel } from "@/components/page-tabs";
 import { RouteModal } from "@/components/route-modal";
 import { RowMenu } from "@/components/row-menu";
 import { Badge, buttonClass, Card, EmptyState, inputClass, PageHeader } from "@/components/ui";
+import { allergenNote, sourceLink, sourceNote } from "@/lib/food-sources";
 import { ALLERGEN_LABELS, round } from "@/lib/nutrition";
 import { CLINICAL_ROLES } from "@/lib/roles";
 import { requireStaff } from "@/lib/session";
@@ -25,10 +26,13 @@ export default async function FoodsPage({ searchParams }: PageProps<"/dashboard/
   const query = typeof sp.q === "string" ? sp.q.trim().slice(0, 80) : "";
   const supabase = await createClient();
 
-  const [{ data: results }, { data: mine }] = await Promise.all([
+  const [{ data: results }, { data: mine }, { data: datasets }] = await Promise.all([
     supabase.rpc("search_foods", { p_query: query, p_limit: 60 }),
     supabase.from("foods").select("*").eq("practice_id", membership.practiceId).is("archived_at", null).order("is_recipe", { ascending: false }).order("name"),
+    supabase.from("food_datasets").select("id, name, attribution, licence, food_count").gt("food_count", 0).order("food_count", { ascending: false }),
   ]);
+  const libraryCount = (datasets ?? []).reduce((n, d) => n + d.food_count, 0);
+  const attributions = [...new Set((datasets ?? []).filter((d) => d.id !== "nutrix").map((d) => `${d.attribution} (${d.licence})`))];
 
   const foodParam = typeof sp.food === "string" ? sp.food : null;
   const recipeParam = typeof sp.recipe === "string" ? sp.recipe : null;
@@ -39,7 +43,7 @@ export default async function FoodsPage({ searchParams }: PageProps<"/dashboard/
     <div className="space-y-6">
       <PageHeader
         title="Foods & recipes"
-        description="USDA FoodData Central, Lebanese dishes, and your practice's own foods and recipes."
+        description="Generic foods, packaged products, Lebanese dishes, and your practice's own foods and recipes."
         action={
           <div className="flex flex-wrap gap-2">
             <Dialog label="New food" variant="secondary" icon={<Plus className="size-4" />} title="New food" description="A packaged or local product, with values from its label." size="lg">
@@ -65,7 +69,7 @@ export default async function FoodsPage({ searchParams }: PageProps<"/dashboard/
       <TabPanel id="library" tabs={TABS}>
         <form role="search" className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted" />
-          <input name="q" defaultValue={query} placeholder="Search 7,000+ foods, e.g. kibbeh, chicken breast, lentils cooked" className={`${inputClass} pl-10`} />
+          <input name="q" defaultValue={query} placeholder={`Search ${libraryCount > 1000 ? `${(Math.floor(libraryCount / 1000) * 1000).toLocaleString("en-US")}+ ` : ""}foods by name, brand or barcode, e.g. kibbeh, chicken breast, labneh`} className={`${inputClass} pl-10`} />
         </form>
         <Card className="mt-4">
           {!results?.length ? (
@@ -77,7 +81,8 @@ export default async function FoodsPage({ searchParams }: PageProps<"/dashboard/
           )}
         </Card>
         <p className="mt-3 text-xs text-muted">
-          {query ? `Top ${results?.length ?? 0} matches.` : "Your foods and the Lebanese dishes first. Search to see everything."} Library values: USDA FoodData Central (public domain).
+          {query ? `Top ${results?.length ?? 0} matches: generic foods first, then packaged products.` : "Your foods and the Lebanese dishes first. Search to see everything."}
+          {attributions.length > 0 && ` Library data: ${attributions.join("; ")}.`}
         </p>
       </TabPanel>
 
@@ -151,6 +156,7 @@ async function FoodDetail({ id, practiceId }: { id: string; practiceId: string }
   if (!food) return null;
   const per100 = { kcal: Number(food.kcal), protein_g: Number(food.protein_g), carbs_g: Number(food.carbs_g), fat_g: Number(food.fat_g), fiber_g: Number(food.fiber_g ?? 0) };
   const own = food.practice_id === practiceId;
+  const link = sourceLink(food);
 
   return (
     <RouteModal param="food" size="lg" title={food.name} description={food.practice_id ? "Your practice" : food.category}>
@@ -177,7 +183,7 @@ async function FoodDetail({ id, practiceId }: { id: string; practiceId: string }
         {food.allergens.length > 0 && (
           <p className="text-sm">
             <span className="font-medium">Contains:</span> {food.allergens.map((a) => ALLERGEN_LABELS[a]).join(", ")}
-            {food.source === "usda" && <span className="block text-xs text-muted">Matched from the food&apos;s name. Check labels for packaged products.</span>}
+            {allergenNote(food) && <span className="block text-xs text-muted">{allergenNote(food)}</span>}
           </p>
         )}
 
@@ -217,10 +223,16 @@ async function FoodDetail({ id, practiceId }: { id: string; practiceId: string }
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
           <p className="text-xs text-muted">
-            {food.source === "usda" ? (
-              <a href={`https://fdc.nal.usda.gov/food-details/${food.source_ref}/nutrients`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline underline-offset-2">
-                USDA FoodData Central #{food.source_ref} <ExternalLink className="size-3" />
-              </a>
+            {link ? (
+              <>
+                <a href={link.href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline underline-offset-2">
+                  {link.label} <ExternalLink className="size-3" />
+                </a>
+                {sourceNote(food) && <span className="block">{sourceNote(food)}</span>}
+                {food.barcode && <span className="block">Barcode {food.barcode}</span>}
+              </>
+            ) : sourceNote(food) ? (
+              sourceNote(food)
             ) : food.source === "nutrix" ? (
               "Nutrix standard recipe, computed from USDA ingredients. Copy it to adjust to your patients."
             ) : food.is_recipe ? (

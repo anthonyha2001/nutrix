@@ -1,0 +1,20 @@
+{
+  "name": "nutrix-foods-import",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Downloads open food datasets, normalizes them to Nutrix foods (per 100 g) and bulk-loads them into Postgres.",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "download": "node src/download.mjs",
+    "build": "node --max-old-space-size=6144 src/build.mjs",
+    "load": "node src/load.mjs",
+    "test": "node --test src/"
+  },
+  "dependencies": {
+    "csv-parse": "^5.6.0",
+    "pg": "^8.13.1",
+    "pg-copy-streams": "^6.0.6",
+    "yauzl": "^3.2.0"
+  }
+}

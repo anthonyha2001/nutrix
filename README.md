@@ -59,8 +59,8 @@ What Phase 1 built:
   template.
 - **Templates:** a private library (meal, daily, weekly, program) with search, type tabs, favourites, duplicate and
   delete. A plan made from a template is a copy.
-- **Foods & recipes:** the USDA FoodData Central library (7,283 foods, public domain), 10 Lebanese dishes, and the
-  practice's own foods (from labels) and recipes, whose nutrition is computed from their ingredients.
+- **Foods & recipes:** a shared library built from open datasets (see "Food library" below), 10 Lebanese dishes,
+  and the practice's own foods (from labels) and recipes, whose nutrition is computed from their ingredients.
 - **Team and settings:** invite dietitians or assistants, change roles, and edit practice details.
 - **Patient app:** Today (that day's meals with totals) and Plan (the whole plan, including approved swaps).
 - **Tests:** `supabase/tests/rls_test.sql` and `phase1_test.sql` (access rules, snapshots, template privacy).
@@ -68,8 +68,10 @@ What Phase 1 built:
 
 ### Known gaps
 
-- **Missing Lebanese staples:** USDA has no labneh, kaak or local cheeses. Until Nutrix has its own Lebanese product
-  database, dietitians add these as practice foods from their labels. Nothing is aliased to an approximate food.
+- **Lebanese staples:** the generic datasets have no labneh, kaak or local cheeses. Packaged Lebanese products
+  come from Open Food Facts once it is loaded, but coverage depends on what contributors have entered. Until Nutrix
+  has its own verified Lebanese product database, dietitians add missing items as practice foods from their
+  labels. Nothing is aliased to an approximate food.
 - **Lebanese dishes to review:** the 10 dishes are typical home recipes, and the cooked weights of meat dishes and
   soup are assumptions stated on each recipe. They should be reviewed by a dietitian before launch.
 - **Allergen tags are approximate:** tags on USDA foods are matched from food names. They help, but don't
@@ -114,8 +116,11 @@ Ports are chosen so Nutrix runs beside Gymix: Supabase on 544xx (Gymix uses 543x
 
 ```bash
 # 1. Database (Docker must be running), from the repo root. Same CLI version as Gymix, so the Docker images are shared.
-#    Migrations include the USDA food library and Lebanese dishes.
+#    Migrations include USDA SR Legacy (7,283 foods) and the Lebanese dishes.
 npx supabase@3.0.0 start -x studio,logflare,vector,realtime,imgproxy,postgres-meta,edge-runtime,supavisor
+#    Then the food library (about 45,000 foods, ~45 MB; see foods-import/README.md):
+#    cd foods-import && npm install && npm run download && npm run build
+#    DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54422/postgres npm run load
 # 2. Web app
 cd web
 cp .env.example .env.local     # paste the anon key printed by `supabase start`
@@ -196,10 +201,32 @@ Nothing below has been confirmed yet. Verify each item before promising an integ
 | Tanita | Professional software exports, consumer cloud | Whether any API exists for professional scales, or only file exports |
 | Apple Health | HealthKit | Needs a native iOS app; a web app can't read it. Decide when the native patient app starts |
 
-## Food data licensing (to review before commercial use)
+## Food library
 
-- **Open Food Facts:** an open database, but its licence (believed to be ODbL, with share-alike obligations) must
-  be checked against how Nutrix would mix it with its own data.
+The shared library is loaded by `foods-import/` (download, normalise to per 100 g, bulk load). Migrations hold
+only the schema. Each dataset is registered in `food_datasets` with its licence and the attribution the Foods page
+shows. Re-imports upsert by `(dataset, source_ref)` and archive dropped rows, never deleting them.
+
+| Dataset | Stored | Licence |
+| --- | --- | --- |
+| USDA SR Legacy, FNDDS (Survey), Foundation | 13,080 generic foods | CC0 |
+| Canadian Nutrient File 2015 | 5,676 generic foods | Open Government Licence - Canada (attribution) |
+| Open Food Facts, Lebanon and region | 26,367 packaged products | ODbL (attribution, share-alike) |
+| Everything else on Open Food Facts | looked up live, saved when used | ODbL |
+
+The stored library is about 45,000 foods and takes about 45 MB with its indexes. Search takes about 20 ms. Storing
+every product worldwide was tried and rejected: 3.4M rows, 4.3 GB, slower search. Any other product is found
+online by barcode or by "Search Open Food Facts" in the food search. It is saved to the library only when someone
+picks it, which needs `SUPABASE_SECRET_KEY` on the server.
+
+Search (`search_foods`) ignores accents, matches name, brand and aliases, and finds products by barcode. It lists
+generic foods before packaged products.
+
+### Licensing (to review before commercial use)
+
+- **Open Food Facts (ODbL):** commercial use is allowed. A derivative database of OFF must be offered under ODbL,
+  so OFF rows are kept as their own dataset (`share_alike = true`), never merged into other rows, and can be
+  published or removed in one step.
 - **Lebanese product database:** Nutrix's own verified data, entered and checked in-house, with no licence
   constraints.
 

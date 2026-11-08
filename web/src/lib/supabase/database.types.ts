@@ -153,6 +153,19 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"food_datasets": {
+                  Row: {
+                    "attribution": string,"food_count": number,"id": string,"imported_at": string | null,"licence": string,"licence_url": string | null,"name": string,"publisher": string,"share_alike": boolean,"url": string | null,"version": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "attribution": string,"food_count"?: number,"id": string,"imported_at"?: string | null,"licence": string,"licence_url"?: string | null,"name": string,"publisher": string,"share_alike"?: boolean,"url"?: string | null,"version"?: string | null
+                  }
+                  Update: {
+                    "attribution"?: string,"food_count"?: number,"id"?: string,"imported_at"?: string | null,"licence"?: string,"licence_url"?: string | null,"name"?: string,"publisher"?: string,"share_alike"?: boolean,"url"?: string | null,"version"?: string | null
+                  }
+                  Relationships: [
+                  ]
                 },"food_servings": {
                   Row: {
                     "food_id": string,"grams": number,"id": string,"label": string,"sort": number
@@ -175,14 +188,14 @@ isOneToOne: false
                   ]
                 },"foods": {
                   Row: {
-                    "aliases": (string)[],"allergens": (string)[],"archived_at": string | null,"brand": string | null,"carbs_g": number,"category": string,"created_at": string,"created_by": string | null,"fat_g": number,"fiber_g": number | null,"id": string,"instructions": string | null,"is_recipe": boolean,"kcal": number,"name": string,"practice_id": string | null,"protein_g": number,"recipe_servings": number | null,"recipe_yield_g": number | null,"sodium_mg": number | null,"source": Database["public"]['Enums']["food_source"],"source_ref": string | null,"sugar_g": number | null,"updated_at": string
+                    "aliases": (string)[],"allergens": (string)[],"archived_at": string | null,"barcode": string | null,"brand": string | null,"branded": boolean,"carbs_g": number,"category": string,"created_at": string,"created_by": string | null,"dataset": string | null,"fat_g": number,"fiber_g": number | null,"id": string,"instructions": string | null,"is_recipe": boolean,"kcal": number,"name": string,"practice_id": string | null,"protein_g": number,"recipe_servings": number | null,"recipe_yield_g": number | null,"saved_on_use": boolean,"search_text": string,"sodium_mg": number | null,"source": Database["public"]['Enums']["food_source"],"source_ref": string | null,"sugar_g": number | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "aliases"?: (string)[],"allergens"?: (string)[],"archived_at"?: string | null,"brand"?: string | null,"carbs_g"?: number,"category"?: string,"created_at"?: string,"created_by"?: string | null,"fat_g"?: number,"fiber_g"?: number | null,"id"?: string,"instructions"?: string | null,"is_recipe"?: boolean,"kcal"?: number,"name": string,"practice_id"?: string | null,"protein_g"?: number,"recipe_servings"?: number | null,"recipe_yield_g"?: number | null,"sodium_mg"?: number | null,"source": Database["public"]['Enums']["food_source"],"source_ref"?: string | null,"sugar_g"?: number | null,"updated_at"?: string
+                    "aliases"?: (string)[],"allergens"?: (string)[],"archived_at"?: string | null,"barcode"?: string | null,"brand"?: string | null,"branded"?: boolean,"carbs_g"?: number,"category"?: string,"created_at"?: string,"created_by"?: string | null,"dataset"?: string | null,"fat_g"?: number,"fiber_g"?: number | null,"id"?: string,"instructions"?: string | null,"is_recipe"?: boolean,"kcal"?: number,"name": string,"practice_id"?: string | null,"protein_g"?: number,"recipe_servings"?: number | null,"recipe_yield_g"?: number | null,"saved_on_use"?: boolean,"search_text"?: string,"sodium_mg"?: number | null,"source": Database["public"]['Enums']["food_source"],"source_ref"?: string | null,"sugar_g"?: number | null,"updated_at"?: string
                   }
                   Update: {
-                    "aliases"?: (string)[],"allergens"?: (string)[],"archived_at"?: string | null,"brand"?: string | null,"carbs_g"?: number,"category"?: string,"created_at"?: string,"created_by"?: string | null,"fat_g"?: number,"fiber_g"?: number | null,"id"?: string,"instructions"?: string | null,"is_recipe"?: boolean,"kcal"?: number,"name"?: string,"practice_id"?: string | null,"protein_g"?: number,"recipe_servings"?: number | null,"recipe_yield_g"?: number | null,"sodium_mg"?: number | null,"source"?: Database["public"]['Enums']["food_source"],"source_ref"?: string | null,"sugar_g"?: number | null,"updated_at"?: string
+                    "aliases"?: (string)[],"allergens"?: (string)[],"archived_at"?: string | null,"barcode"?: string | null,"brand"?: string | null,"branded"?: boolean,"carbs_g"?: number,"category"?: string,"created_at"?: string,"created_by"?: string | null,"dataset"?: string | null,"fat_g"?: number,"fiber_g"?: number | null,"id"?: string,"instructions"?: string | null,"is_recipe"?: boolean,"kcal"?: number,"name"?: string,"practice_id"?: string | null,"protein_g"?: number,"recipe_servings"?: number | null,"recipe_yield_g"?: number | null,"saved_on_use"?: boolean,"search_text"?: string,"sodium_mg"?: number | null,"source"?: Database["public"]['Enums']["food_source"],"source_ref"?: string | null,"sugar_g"?: number | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -923,6 +936,12 @@ isOneToOne: false
 "save_recipe":
 { Args: { "p_category"?: string,"p_id"?: string,"p_ingredients"?: Json,"p_instructions"?: string,"p_name"?: string,"p_practice_id": string,"p_servings"?: number,"p_yield_g"?: number }; Returns: string
                            },
+"food_import_apply":
+{ Args: { "p_dataset": string,"p_version": string }; Returns: number
+                           },
+"food_save_online":
+{ Args: { "p": Json }; Returns: string
+                           },
 "save_template":
 { Args: { "p_category"?: string,"p_content"?: Json,"p_description"?: string,"p_id"?: string,"p_kind"?: Database["public"]['Enums']["template_kind"],"p_name"?: string,"p_practice_id": string }; Returns: string
                            },
@@ -931,11 +950,14 @@ isOneToOne: false
               "aliases": (string)[],
 "allergens": (string)[],
 "archived_at": string | null,
+"barcode": string | null,
 "brand": string | null,
+"branded": boolean,
 "carbs_g": number,
 "category": string,
 "created_at": string,
 "created_by": string | null,
+"dataset": string | null,
 "fat_g": number,
 "fiber_g": number | null,
 "id": string,
@@ -947,6 +969,8 @@ isOneToOne: false
 "protein_g": number,
 "recipe_servings": number | null,
 "recipe_yield_g": number | null,
+"saved_on_use": boolean,
+"search_text": string,
 "sodium_mg": number | null,
 "source": Database["public"]['Enums']["food_source"],
 "source_ref": string | null,
@@ -970,7 +994,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "activity_level": "sedentary"|"light"|"moderate"|"active"|"very_active","appointment_status": "requested"|"confirmed"|"completed"|"no_show"|"cancelled","diary_source": "search"|"plan"|"swap","food_source": "usda"|"nutrix"|"practice","measurement_source": "manual"|"inbody"|"tanita"|"withings"|"apple_health"|"patient","payment_method": "cash_usd"|"cash_lbp"|"card"|"transfer"|"whish"|"omt","plan_status": "draft"|"active"|"archived","practice_role": "owner"|"dietitian"|"assistant","sex": "female"|"male","template_kind": "meal"|"day"|"week"|"program"
+            "activity_level": "sedentary"|"light"|"moderate"|"active"|"very_active","appointment_status": "requested"|"confirmed"|"completed"|"no_show"|"cancelled","diary_source": "search"|"plan"|"swap","food_source": "usda"|"nutrix"|"practice"|"openfoodfacts"|"cnf","measurement_source": "manual"|"inbody"|"tanita"|"withings"|"apple_health"|"patient","payment_method": "cash_usd"|"cash_lbp"|"card"|"transfer"|"whish"|"omt","plan_status": "draft"|"active"|"archived","practice_role": "owner"|"dietitian"|"assistant","sex": "female"|"male","template_kind": "meal"|"day"|"week"|"program"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1086,7 +1110,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "activity_level": ["sedentary", "light", "moderate", "active", "very_active"],"appointment_status": ["requested", "confirmed", "completed", "no_show", "cancelled"],"diary_source": ["search", "plan", "swap"],"food_source": ["usda", "nutrix", "practice"],"measurement_source": ["manual", "inbody", "tanita", "withings", "apple_health", "patient"],"payment_method": ["cash_usd", "cash_lbp", "card", "transfer", "whish", "omt"],"plan_status": ["draft", "active", "archived"],"practice_role": ["owner", "dietitian", "assistant"],"sex": ["female", "male"],"template_kind": ["meal", "day", "week", "program"]
+            "activity_level": ["sedentary", "light", "moderate", "active", "very_active"],"appointment_status": ["requested", "confirmed", "completed", "no_show", "cancelled"],"diary_source": ["search", "plan", "swap"],"food_source": ["usda", "nutrix", "practice", "openfoodfacts", "cnf"],"measurement_source": ["manual", "inbody", "tanita", "withings", "apple_health", "patient"],"payment_method": ["cash_usd", "cash_lbp", "card", "transfer", "whish", "omt"],"plan_status": ["draft", "active", "archived"],"practice_role": ["owner", "dietitian", "assistant"],"sex": ["female", "male"],"template_kind": ["meal", "day", "week", "program"]
           }
         }
 } as const

@@ -14,7 +14,7 @@ export type FoodHit = {
   category: string;
   brand: string | null;
   is_recipe: boolean;
-  source: "usda" | "nutrix" | "practice";
+  source: "usda" | "nutrix" | "practice" | "openfoodfacts" | "cnf";
   kcal: number;
   protein_g: number;
   carbs_g: number;
@@ -22,6 +22,9 @@ export type FoodHit = {
   fiber_g: number | null;
   allergens: string[];
   servings: Serving[];
+  // Set for an Open Food Facts product found online and not saved yet (its
+  // barcode). Picking it saves it first, then the saved food is used.
+  online?: string;
 };
 
 // One food in a meal, as edited in the builder.
