@@ -408,14 +408,14 @@ isOneToOne: false
                   ]
                 },"patient_health": {
                   Row: {
-                    "activity_level": Database["public"]['Enums']["activity_level"] | null,"goal": string | null,"height_cm": number | null,"lifestyle": string | null,"medical_history": string | null,"medications": string | null,"nutrition_history": string | null,"patient_id": string,"updated_at": string,"updated_by": string | null
+                    "activity_level": Database["public"]['Enums']["activity_level"] | null,"goal": string | null,"height_cm": number | null,"lifestyle": string | null,"medical_history": string | null,"medications": string | null,"nutrition_history": string | null,"patient_id": string,"target_weight_kg": number | null,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "activity_level"?: Database["public"]['Enums']["activity_level"] | null,"goal"?: string | null,"height_cm"?: number | null,"lifestyle"?: string | null,"medical_history"?: string | null,"medications"?: string | null,"nutrition_history"?: string | null,"patient_id": string,"updated_at"?: string,"updated_by"?: string | null
+                    "activity_level"?: Database["public"]['Enums']["activity_level"] | null,"goal"?: string | null,"height_cm"?: number | null,"lifestyle"?: string | null,"medical_history"?: string | null,"medications"?: string | null,"nutrition_history"?: string | null,"patient_id": string,"target_weight_kg"?: number | null,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "activity_level"?: Database["public"]['Enums']["activity_level"] | null,"goal"?: string | null,"height_cm"?: number | null,"lifestyle"?: string | null,"medical_history"?: string | null,"medications"?: string | null,"nutrition_history"?: string | null,"patient_id"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "activity_level"?: Database["public"]['Enums']["activity_level"] | null,"goal"?: string | null,"height_cm"?: number | null,"lifestyle"?: string | null,"medical_history"?: string | null,"medications"?: string | null,"nutrition_history"?: string | null,"patient_id"?: string,"target_weight_kg"?: number | null,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {

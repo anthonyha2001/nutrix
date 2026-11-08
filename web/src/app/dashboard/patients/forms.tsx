@@ -107,6 +107,7 @@ export function AssignForm({ action, dietitians, current }: { action: Action; di
 
 export type HealthValues = {
   height_cm: number | null;
+  target_weight_kg?: number | null;
   activity_level: string | null;
   goal: string | null;
   medical_history: string | null;
@@ -125,6 +126,12 @@ export function HealthForm({ action, health }: { action: Action; health: HealthV
           <div className="relative">
             <input name="height_cm" inputMode="decimal" defaultValue={health?.height_cm ?? ""} className={`${inputClass} pr-12`} />
             <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm text-muted">cm</span>
+          </div>
+        </Field>
+        <Field label="Target weight" optional hint="The overview estimates when it may be reached.">
+          <div className="relative">
+            <input name="target_weight_kg" inputMode="decimal" defaultValue={health?.target_weight_kg ?? ""} className={`${inputClass} pr-12`} />
+            <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm text-muted">kg</span>
           </div>
         </Field>
         <Field label="Activity level" optional>

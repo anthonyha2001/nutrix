@@ -92,10 +92,13 @@ export async function saveHealth(patientId: string, _prev: ActionState, formData
   const { viewer } = await requireStaff(CLINICAL_ROLES);
   const height = optionalNumber(formData, "height_cm");
   if (Number.isNaN(height) || (height !== null && (height < 40 || height > 250))) return { error: "Height must be in centimetres (40 to 250)." };
+  const target = optionalNumber(formData, "target_weight_kg");
+  if (Number.isNaN(target) || (target !== null && (target < 20 || target > 400))) return { error: "Target weight must be in kilograms (20 to 400)." };
   const activity = text(formData, "activity_level");
   const row = {
     patient_id: patientId,
     height_cm: height,
+    target_weight_kg: target,
     activity_level: (ACTIVITY as readonly string[]).includes(activity) ? (activity as (typeof ACTIVITY)[number]) : null,
     goal: text(formData, "goal") || null,
     medical_history: text(formData, "medical_history") || null,

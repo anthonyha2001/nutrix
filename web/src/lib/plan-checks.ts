@@ -57,6 +57,10 @@ export function planChecks(days: PlanDay[], targets: Targets | undefined, allerg
         });
       }
     }
+    // Adults are advised about 25 g of fibre a day or more.
+    if (t.kcal > 800 && t.fiber_g < 20) {
+      out.push({ level: "info", text: `${dayName(d)} has ${fmt(t.fiber_g)} g fibre (about 25 g a day is advised).` });
+    }
     if (targets?.protein_g && t.protein_g < targets.protein_g * (1 - MACRO_TOLERANCE)) {
       out.push({ level: "warning", text: `${dayName(d)} has ${fmt(t.protein_g)} g protein, below the ${fmt(targets.protein_g)} g target.` });
     }

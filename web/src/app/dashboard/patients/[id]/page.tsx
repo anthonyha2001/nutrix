@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { AlertTriangle, ArrowLeft, CalendarPlus, Lock, MessageCircle, NotebookTabs, PenLine, Plus, Scale, Smartphone, Stethoscope } from "lucide-react";
 import { hasFeature } from "@/lib/features";
 import { guessGoal, suggestTargets, type TargetProfile } from "@/lib/energy";
+import { projectGoal, projectionText } from "@/lib/projection";
 import { ActionButton } from "@/components/action-button";
 import { Dialog } from "@/components/dialog";
 import { InviteShare } from "@/components/invite-share";
@@ -260,7 +261,15 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
             hint={first && latest !== first ? `since ${formatDate(first.measured_on)}` : "Needs two weigh-ins"}
           />
           <Stat label="BMI" value={num(bmi(Number(latest?.weight_kg), Number(health?.height_cm)), 1)} hint={health?.height_cm ? `${num(health.height_cm)} cm tall` : "Add height in Health"} />
-          <Stat label="Goal" value={health?.goal ? "" : "-"} hint={health?.goal ?? "Not set"} />
+          <Stat
+            label={health?.target_weight_kg ? "Target weight" : "Goal"}
+            value={health?.target_weight_kg ? `${num(health.target_weight_kg, 1)} kg` : health?.goal ? "" : "-"}
+            hint={
+              health?.target_weight_kg
+                ? (projectionText(projectGoal(weights.map((w) => ({ date: w.measured_on, kg: Number(w.weight_kg) })), Number(health.target_weight_kg)), Number(health.target_weight_kg)) ?? undefined)
+                : (health?.goal ?? "Not set: add a goal or target weight in Health")
+            }
+          />
         </div>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <Card>
@@ -499,6 +508,7 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
               {(
                 [
                   ["Height", health?.height_cm ? `${num(health.height_cm)} cm` : null],
+                  ["Target weight", health?.target_weight_kg ? `${num(health.target_weight_kg, 1)} kg` : null],
                   ["Activity", health?.activity_level ? ACTIVITY_LABELS[health.activity_level] : null],
                   ["Goal", health?.goal],
                   ["Medical history", health?.medical_history],
