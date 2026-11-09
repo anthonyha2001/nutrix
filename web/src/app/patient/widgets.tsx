@@ -276,11 +276,11 @@ export function WeightForm({ today, lang }: { today: string; lang: Lang }) {
     <form action={action} className="space-y-3">
       {state.error && <Alert tone="error">{state.error}</Alert>}
       <div className="flex gap-2">
-        <div className="relative flex-1">
+        <div className="relative min-w-0 flex-1">
           <input name="weight_kg" inputMode="decimal" required placeholder={t.weight} aria-label={t.weightLabel} className={`${inputClass} pe-12`} />
           <span className="pointer-events-none absolute top-1/2 end-3.5 -translate-y-1/2 text-sm text-muted">{t.kg}</span>
         </div>
-        <input name="measured_on" type="date" defaultValue={today} max={today} aria-label={t.date} className={`${inputClass} w-40`} />
+        <input name="measured_on" type="date" defaultValue={today} max={today} aria-label={t.date} className={inputWidth("w-40 shrink-0")} />
       </div>
       <Button type="submit" disabled={pending} className="w-full">
         {pending ? t.saving : t.save}
