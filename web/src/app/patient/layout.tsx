@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { InstallPrompt } from "@/components/install-prompt";
+import { DemoBar } from "@/components/demo-bar";
 import { SupportBanner } from "@/components/support-banner";
 import { Logo, Skeleton } from "@/components/ui";
 import { practiceFeatures } from "@/lib/features";
@@ -44,6 +45,9 @@ async function PatientShell({ children }: { children: React.ReactNode }) {
       <main className="press mx-auto w-full max-w-3xl flex-1 px-4 pt-6 pb-[calc(var(--bottom-bar)+1.5rem)]">
         <Suspense fallback={null}>
           <SupportBanner />
+        </Suspense>
+        <Suspense fallback={null}>
+          <DemoBar area="patient" />
         </Suspense>
         <Suspense fallback={<Skeleton className="h-64" />}>{children}</Suspense>
       </main>

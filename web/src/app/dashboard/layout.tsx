@@ -3,6 +3,7 @@ import { LogOut } from "lucide-react";
 import { Skeleton } from "@/components/ui";
 import { CommandPalette } from "@/components/command-palette";
 import { InstallPrompt } from "@/components/install-prompt";
+import { DemoBar } from "@/components/demo-bar";
 import { SupportBanner } from "@/components/support-banner";
 import { practiceFeatures } from "@/lib/features";
 import { navFor } from "@/lib/modules";
@@ -35,6 +36,9 @@ export default function DashboardLayout({ children }: LayoutProps<"/dashboard">)
       <main className="min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8">
         <Suspense fallback={null}>
           <SupportBanner />
+        </Suspense>
+        <Suspense fallback={null}>
+          <DemoBar area="owner" />
         </Suspense>
         <Suspense fallback={<Skeleton className="h-96" />}>{children}</Suspense>
       </main>

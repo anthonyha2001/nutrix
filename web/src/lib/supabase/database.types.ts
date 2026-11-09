@@ -113,6 +113,40 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"demo_starts": {
+                  Row: {
+                    "created_at": string,"id": number,"ip_hash": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: never,"ip_hash": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: never,"ip_hash"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"demo_users": {
+                  Row: {
+                    "practice_id": string,"role": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "practice_id": string,"role": string,"user_id": string
+                  }
+                  Update: {
+                    "practice_id"?: string,"role"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "demo_users_practice_id_fkey"
+      columns: ["practice_id"]
+isOneToOne: false
+      referencedRelation: "practices"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"diary_entries": {
                   Row: {
                     "carbs_g": number,"created_at": string,"eaten_on": string,"fat_g": number,"fiber_g": number | null,"food_id": string | null,"grams": number,"id": string,"kcal": number,"name": string,"patient_id": string,"plan_meal_key": string | null,"protein_g": number,"serving": Json | null,"slot": string,"source": Database["public"]['Enums']["diary_source"]
@@ -807,14 +841,14 @@ isOneToOne: true
                   ]
                 },"practices": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"id": string,"is_lab": boolean,"lbp_rate": number,"name": string,"slug": string,"timezone": string
+                    "created_at": string,"created_by": string | null,"demo_expires_at": string | null,"id": string,"is_lab": boolean,"lbp_rate": number,"name": string,"slug": string,"timezone": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"is_lab"?: boolean,"lbp_rate"?: number,"name": string,"slug": string,"timezone"?: string
+                    "created_at"?: string,"created_by"?: string | null,"demo_expires_at"?: string | null,"id"?: string,"is_lab"?: boolean,"lbp_rate"?: number,"name": string,"slug": string,"timezone"?: string
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"is_lab"?: boolean,"lbp_rate"?: number,"name"?: string,"slug"?: string,"timezone"?: string
+                    "created_at"?: string,"created_by"?: string | null,"demo_expires_at"?: string | null,"id"?: string,"is_lab"?: boolean,"lbp_rate"?: number,"name"?: string,"slug"?: string,"timezone"?: string
                   }
                   Relationships: [
                     
@@ -1071,6 +1105,9 @@ isOneToOne: false
 "copy_recipe":
 { Args: { "p_practice_id": string,"p_recipe_id": string }; Returns: string
                            },
+"create_demo_practice":
+{ Args: { "p_owner": string,"p_patient_user": string }; Returns: string
+                           },
 "create_invoice":
 { Args: { "p_amount_usd": number,"p_description": string,"p_patient_id": string }; Returns: string
                            },
@@ -1079,6 +1116,11 @@ isOneToOne: false
                            },
 "duplicate_template":
 { Args: { "p_id": string }; Returns: string
+                           },
+"expired_demo_practices":
+{ Args: { "p_limit"?: number }; Returns: {
+              "practice_id": string,"user_ids": (string)[]
+            }[]
                            },
 "food_import_apply":
 { Args: { "p_dataset": string,"p_version": string }; Returns: number

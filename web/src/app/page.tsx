@@ -97,7 +97,7 @@ const FAQ = [
   ["Can I use my own WhatsApp number?", "Yes. Messages can go out from the Nutrix number with nothing to set up, or from your own WhatsApp Business number."],
   ["Where do the nutrition numbers come from?", "From USDA FoodData Central and verified product data. Lebanese dishes are recipes whose values are computed from their ingredients, and you can adjust them."],
   ["Who can see a patient's file?", "The practice owner and the patient's dietitian. Assistants see contact details for booking and billing only. Patients see their own plan and progress."],
-  ["Can I try it?", "Yes. Create your practice and add your first patients today."],
+  ["Can I try it?", "Yes. Open the live demo: a private sample practice full of patients, plans and appointments, with no sign-up. Or create your practice and add your first patients today."],
 ] as const;
 
 function Check(props: React.ComponentProps<"svg">) {
@@ -120,6 +120,7 @@ export default function Home() {
             <a href="#patients" className="hover:text-white">Patient app</a>
             <a href="#lebanon" className="hover:text-white">Lebanese food</a>
             <a href="#faq" className="hover:text-white">FAQ</a>
+            <Link href="/demo" className="hover:text-white">Demo</Link>
           </nav>
           <div className="flex items-center gap-2">
             <Link href="/login" className="hidden h-10 items-center rounded-lg px-3 text-sm text-white/80 hover:text-white sm:inline-flex">
@@ -153,9 +154,9 @@ export default function Home() {
               <Link href="/signup" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-brand px-6 font-semibold text-ink transition hover:bg-brand-strong active:scale-[0.97]">
                 Start your practice <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
               </Link>
-              <a href="#features" className="inline-flex h-12 items-center rounded-xl border border-white/15 px-6 font-medium text-white/90 transition hover:bg-white/5">
-                See everything it does
-              </a>
+              <Link href="/demo" className="inline-flex h-12 items-center rounded-xl border border-white/15 px-6 font-medium text-white/90 transition hover:bg-white/5">
+                Try the live demo
+              </Link>
             </div>
             <div className="page-enter mt-10 flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/55">
               <span className="inline-flex items-center gap-1.5"><Check className="size-4 text-brand" /> English and Arabic</span>
@@ -467,8 +468,8 @@ export default function Home() {
             <Link href="/signup" className={buttonClass("primary", "h-12 rounded-xl px-7 text-base")}>
               Start your practice <ArrowRight className="size-4" />
             </Link>
-            <Link href="/login" className="inline-flex h-12 items-center rounded-xl px-6 font-medium text-ink/80 hover:text-ink">
-              Log in
+            <Link href="/demo" className="inline-flex h-12 items-center rounded-xl border border-ink/15 px-6 font-medium text-ink hover:bg-ink/5">
+              Try the live demo
             </Link>
           </div>
         </Reveal>
