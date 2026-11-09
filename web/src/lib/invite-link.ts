@@ -1,4 +1,4 @@
-// Client-safe helpers for sharing links on WhatsApp (same as Gymix).
+// Client-safe helpers: phone numbers for the WhatsApp API, and invite message texts.
 
 // Lebanese-style phone number to WhatsApp's international format:
 // "71 123 456" / "03 123456" / "+961 71 123 456" / "00961…" -> "96171123456".
@@ -12,10 +12,6 @@ export function waNumber(phone: string | null | undefined) {
   return d.length >= 10 ? d : null;
 }
 
-export function whatsappUrl(phone: string | null | undefined, message: string) {
-  const n = waNumber(phone);
-  return `https://wa.me/${n ?? ""}?text=${encodeURIComponent(message)}`;
-}
 
 export function patientInviteMessage(firstName: string, practiceName: string, url: string) {
   return (

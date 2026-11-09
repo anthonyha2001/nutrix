@@ -5,7 +5,7 @@ import { Check, Copy } from "lucide-react";
 import { buttonClass } from "@/components/ui";
 
 // Copy buttons for a link and its message. Sending on WhatsApp happens through
-// the API (SendWhatsApp), never through a manual wa.me link.
+// the API (SendWhatsApp).
 export function InviteShare({ url, message, compact = false }: { url: string; message: string; phone?: string | null; compact?: boolean }) {
   const [copied, setCopied] = useState<"link" | "message" | null>(null);
   async function copy(what: "link" | "message") {

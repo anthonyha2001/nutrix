@@ -6,7 +6,7 @@ import { showToast } from "@/components/toaster";
 import { buttonClass } from "@/components/ui";
 import type { ActionState } from "@/lib/action-result";
 
-// Sends a message through the WhatsApp API (never a manual wa.me link).
+// Sends a message through the WhatsApp API.
 export function SendWhatsApp({ action, label = "Send on WhatsApp", className = "" }: { action: () => Promise<ActionState>; label?: string; className?: string }) {
   const [pending, start] = useTransition();
   return (
