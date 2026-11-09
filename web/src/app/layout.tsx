@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
+import { Splash, SPLASH_SCRIPT } from "@/components/splash";
 import { Toaster } from "@/components/toaster";
 
 // Arabic letters (the patient app in Arabic). Geist has none; loaded only when used.
@@ -27,8 +28,12 @@ export const viewport: Viewport = { themeColor: "#0d1117", viewportFit: "cover",
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${arabic.variable} h-full antialiased`}>
+    <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${arabic.variable} h-full antialiased`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: SPLASH_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col font-sans">
+        <Splash />
         {children}
         <Toaster />
       </body>

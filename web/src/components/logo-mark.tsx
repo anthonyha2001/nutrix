@@ -1,22 +1,24 @@
-// The Nutrix mark: a bold "N" whose right stem sprouts a leaf, drawn on a
-// 100x100 grid with the same stroke weights as the Gymix mark. Colour comes
-// from `currentColor`.
-export const MARK_PATHS = [
-  { d: "M30 76 V30 L62 70 V50", width: 15, cap: "butt", fill: false },
-  { d: "M62 52 C62 38 66 30 74 26", width: 8.5, cap: "round", fill: false },
-  { d: "M70 30 C70 19 77 13 88 12 C88 23 81 30 70 30 Z", width: 4, cap: "round", fill: true },
-] as const;
+// The Nutrix mark: a bold geometric "N" whose right stem is cut on the slant,
+// with a leaf growing above it. Drawn on a 100x100 grid; colour comes from
+// `currentColor`. The two parts are separate so the splash can animate them.
+export const MARK_N = "M18.5 28.5 H35.5 L65 60 V47 L80.8 40 V80 H62.5 L34.5 50 V80 H18.5 Z";
+export const MARK_LEAF = "M61 41 C57 26 66 16 86 11 C86 27 78 36 61 41 Z";
 
-export const MARK_TRANSFORM = "translate(-1,2)";
+// Nudges the drawing to the optical centre of the square.
+export const MARK_TRANSFORM = "translate(0,4)";
 
-export function LogoMark({ className = "" }: { className?: string }) {
+export function LogoMark({ className = "", animated = false }: { className?: string; animated?: boolean }) {
   return (
     <svg viewBox="0 0 100 100" aria-hidden className={className}>
-      <g transform={MARK_TRANSFORM} stroke="currentColor" strokeLinejoin="round">
-        {MARK_PATHS.map((p) => (
-          <path key={p.d} d={p.d} strokeWidth={p.width} strokeLinecap={p.cap} fill={p.fill ? "currentColor" : "none"} />
-        ))}
+      <g transform={MARK_TRANSFORM} fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round">
+        <path d={MARK_N} className={animated ? "splash-n" : undefined} />
+        <path d={MARK_LEAF} className={animated ? "splash-leaf" : undefined} />
       </g>
     </svg>
   );
+}
+
+// The mark as a complete SVG document (favicon, app icons).
+export function markSvg({ background, color, radius = 22 }: { background: string; color: string; radius?: number }) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="${radius}" fill="${background}"/><g transform="${MARK_TRANSFORM}" fill="${color}" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"><path d="${MARK_N}"/><path d="${MARK_LEAF}"/></g></svg>`;
 }
