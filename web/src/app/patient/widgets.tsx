@@ -6,7 +6,7 @@ import { Bell, BellOff, Check, Droplet, Minus, Plus } from "lucide-react";
 import { FoodSearch } from "@/components/food-search";
 import { Modal } from "@/components/dialog";
 import { showToast } from "@/components/toaster";
-import { Alert, Button, buttonClass, Field, inputClass } from "@/components/ui";
+import { Alert, Button, buttonClass, Field, inputClass, inputWidth } from "@/components/ui";
 import type { ActionState } from "@/lib/action-result";
 import { amountLabel, round, type FoodHit, type MealSlot, type SavedMeal } from "@/lib/nutrition";
 import { amountIn } from "@/lib/plan-i18n";
@@ -234,8 +234,8 @@ export function DiaryAdd({ date, defaultSlot, lang }: { date: string; defaultSlo
         </button>
       </div>
       <div className="flex gap-2">
-        <input inputMode="decimal" value={qty} onChange={(e) => setQty(e.target.value.replace(",", "."))} aria-label={t.diary.amount} className={`${inputClass} w-24`} />
-        <select value={unit} onChange={(e) => setUnit(e.target.value)} aria-label={t.diary.unit} className={`${inputClass} flex-1`}>
+        <input inputMode="decimal" value={qty} onChange={(e) => setQty(e.target.value.replace(",", "."))} aria-label={t.diary.amount} className={inputWidth("w-24 shrink-0")} />
+        <select value={unit} onChange={(e) => setUnit(e.target.value)} aria-label={t.diary.unit} className={inputWidth("min-w-0 flex-1")}>
           <option value="g">{t.diary.grams}</option>
           {food.servings.map((s) => (
             <option key={s.label} value={s.label}>
