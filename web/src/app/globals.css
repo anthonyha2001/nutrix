@@ -206,3 +206,20 @@ details[open] > :not(summary) { animation: nx-fade-in 220ms ease-out; }
 @media (prefers-reduced-motion: reduce) {
   .splash { display: none; }
 }
+
+/* ---------------------------------------------------------------- landing */
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity 700ms cubic-bezier(0.22, 1, 0.36, 1), transform 700ms cubic-bezier(0.22, 1, 0.36, 1); }
+.reveal[data-shown="true"] { opacity: 1; transform: none; }
+@keyframes nx-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes nx-float-slow { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-14px) rotate(-1deg); } }
+@keyframes nx-aurora { 0%, 100% { transform: translate(-6%, -4%) scale(1); } 50% { transform: translate(6%, 4%) scale(1.12); } }
+@keyframes nx-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.float { animation: nx-float 6s ease-in-out infinite; }
+.float-slow { animation: nx-float-slow 8s ease-in-out infinite; }
+.aurora { animation: nx-aurora 16s ease-in-out infinite; }
+.marquee { animation: nx-marquee 40s linear infinite; }
+.marquee:hover { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .float, .float-slow, .aurora, .marquee { animation: none; }
+}
