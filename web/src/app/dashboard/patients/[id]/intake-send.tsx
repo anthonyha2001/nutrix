@@ -5,10 +5,12 @@ import { ClipboardList } from "lucide-react";
 import { Modal } from "@/components/dialog";
 import { InviteShare } from "@/components/invite-share";
 import { Alert, Button, buttonClass } from "@/components/ui";
+import { SendWhatsApp } from "@/components/send-whatsapp";
+import { sendIntakeAction } from "../../whatsapp/actions";
 import { createIntakeLink } from "../actions";
 
 // Creates (or reuses) the patient's intake link only when asked, then offers
-// it on WhatsApp or to copy.
+// it to send automatically on WhatsApp, or to copy.
 export function IntakeSend({ patientId, firstName, practiceName, phone, label = "Send intake form" }: { patientId: string; firstName: string; practiceName: string; phone: string | null; label?: string }) {
   const [open, setOpen] = useState(false);
   const [link, setLink] = useState<{ url?: string; error?: string } | null>(null);
@@ -33,7 +35,8 @@ export function IntakeSend({ patientId, firstName, practiceName, phone, label = 
         {link?.error && <Alert tone="error">{link.error}</Alert>}
         {link?.url && (
           <div className="space-y-3">
-            <InviteShare url={link.url} phone={phone} message={message(link.url)} />
+            {phone && <SendWhatsApp action={() => sendIntakeAction(patientId, link.url!)} />}
+            <InviteShare url={link.url} message={message(link.url)} />
             <p className="text-xs text-muted">The link works once and for 14 days. It shows only {firstName}&apos;s first name.</p>
             <div className="flex justify-end">
               <Button type="button" variant="ghost" onClick={() => setOpen(false)}>

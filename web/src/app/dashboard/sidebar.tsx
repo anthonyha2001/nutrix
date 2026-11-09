@@ -18,6 +18,7 @@ import {
   Users,
   X,
   type LucideIcon,
+  Send,
 } from "lucide-react";
 import { Logo, Skeleton } from "@/components/ui";
 import type { ModuleIcon, NavSection } from "@/lib/modules";
@@ -30,6 +31,7 @@ const ICONS: Record<ModuleIcon, LucideIcon> = {
   foods: Apple,
   appointments: CalendarDays,
   messages: MessageCircle,
+  whatsapp: Send,
   billing: Receipt,
   reports: FileText,
   team: Users,

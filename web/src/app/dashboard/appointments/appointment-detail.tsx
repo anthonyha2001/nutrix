@@ -1,12 +1,11 @@
 import Link from "next/link";
-import { MessageCircle, Stethoscope, Video } from "lucide-react";
+import { Send, Stethoscope, Video } from "lucide-react";
 import { ActionButton } from "@/components/action-button";
 import { Dialog } from "@/components/dialog";
 import { PatientSummaryCard } from "@/components/patient-summary";
 import { RouteModal } from "@/components/route-modal";
 import { Badge, buttonClass } from "@/components/ui";
 import { todayIn } from "@/lib/format";
-import { whatsappUrl } from "@/lib/invite-link";
 import { usd } from "@/lib/money";
 import { patientSummary } from "@/lib/patient-summary";
 import type { StaffMembership } from "@/lib/session";
@@ -30,6 +29,7 @@ export async function AppointmentDetail({ id, membership }: { id: string; member
   const tz = membership.timezone;
   const { data: clinical } = await supabase.rpc("can_see_clinical", { p_patient_id: a.patient_id });
   const summary = clinical ? await patientSummary(a.patient_id, tz) : null;
+  const { data: wa } = await supabase.from("whatsapp_log").select("kind, status, created_at").like("ref", `${a.id}:%`).order("created_at");
   const local = isoToLocal(a.starts_at, tz);
   const minutes = Math.round((Date.parse(a.ends_at) - Date.parse(a.starts_at)) / 60000);
   const open = a.status === "requested" || a.status === "confirmed";
@@ -37,7 +37,6 @@ export async function AppointmentDetail({ id, membership }: { id: string; member
   const canMark = open && local.date <= todayIn(tz);
   const status = APPOINTMENT_STATUS[a.status];
   const firstName = a.patients.full_name.split(/\s+/)[0];
-  const reminder = `Hi ${firstName}, a reminder of your appointment at ${membership.practiceName} on ${formatWhen(a.starts_at, tz)}${a.online ? " (online)" : ""}. Reply here if you need to change it.`;
 
   return (
     <RouteModal param="appt" size="lg" title={a.patients.full_name} description={formatWhen(a.starts_at, tz)}>
@@ -66,6 +65,15 @@ export async function AppointmentDetail({ id, membership }: { id: string; member
         {a.status === "completed" && <p className="text-sm text-muted">{a.patient_packages ? `Counted against ${a.patient_packages.name}.` : "Not counted against a package."}</p>}
 
         {summary && <PatientSummaryCard s={summary} />}
+
+        <p className="flex items-start gap-2 text-xs text-muted">
+          <Send className="mt-0.5 size-3.5 shrink-0" />
+          <span>
+            {wa?.length
+              ? wa.map((w) => `${w.kind === "appointment_reminder" ? "Reminder" : "Confirmation"} ${w.status === "sent" ? "sent" : w.status === "failed" ? "failed" : "sending"} ${formatWhen(w.created_at, tz)}`).join(" · ")
+              : "WhatsApp: the confirmation goes out automatically when booked, and a reminder the day before."}
+          </span>
+        </p>
         {(open || a.status === "completed") && <PackageRenewal patientId={a.patient_id} firstName={firstName} membership={membership} />}
 
         {open && !canMark && <p className="text-xs text-muted">Attendance can be recorded from the day of the appointment.</p>}
@@ -95,9 +103,6 @@ export async function AppointmentDetail({ id, membership }: { id: string; member
               <Dialog label="Move" variant="secondary" title="Move appointment">
                 <RescheduleForm action={rescheduleAppointment.bind(null, a.id)} date={local.date} time={local.time} duration={minutes} />
               </Dialog>
-              <a href={whatsappUrl(a.patients.phone, reminder)} target="_blank" rel="noopener noreferrer" className={buttonClass("secondary")}>
-                <MessageCircle className="size-4" /> Remind on WhatsApp
-              </a>
               <Dialog label="Cancel" variant="danger" title="Cancel appointment">
                 <CancelForm action={cancelAppointment.bind(null, a.id)} />
               </Dialog>

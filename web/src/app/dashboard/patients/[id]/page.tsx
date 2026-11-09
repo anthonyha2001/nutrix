@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
+
 import { AlertTriangle, ArrowLeft, CalendarPlus, Lock, MessageCircle, NotebookTabs, PenLine, Plus, Scale, Smartphone, Stethoscope } from "lucide-react";
 import { hasFeature } from "@/lib/features";
 import { guessGoal, suggestTargets, type TargetProfile } from "@/lib/energy";
@@ -10,6 +10,8 @@ import { aiConfigured } from "@/lib/import/ai-read";
 import { ActionButton } from "@/components/action-button";
 import { Dialog } from "@/components/dialog";
 import { InviteShare } from "@/components/invite-share";
+import { SendWhatsApp } from "@/components/send-whatsapp";
+import { sendAppInviteAction } from "../../whatsapp/actions";
 import { MacroSummary } from "@/components/macro-summary";
 import { PageTabs, TabPanel } from "@/components/page-tabs";
 import { PlanBuilder } from "@/components/plan-builder";
@@ -50,7 +52,6 @@ import { ImportDialog } from "./import-dialog";
 import { IntakePanel } from "./intake-panel";
 import { IntakeSend } from "./intake-send";
 import { LabsTab } from "./labs-tab";
-import { PatientWhatsApp } from "./patient-whatsapp";
 import { AllergyForm, CopyPlanForm, FromTemplateForm, HealthForm, MeasurementForm, NoteForm, PatientForm, SaveAsTemplateForm } from "../forms";
 
 export const metadata: Metadata = { title: "Patient" };
@@ -67,7 +68,7 @@ const ACTIVITY_LABELS: Record<string, string> = {
 const STATUS = { active: { label: "Active", tone: "green" }, draft: { label: "Draft", tone: "amber" }, archived: { label: "Previous", tone: "gray" } } as const;
 
 export default async function PatientPage({ params, searchParams }: PageProps<"/dashboard/patients/[id]">) {
-  const { viewer, membership } = await requireStaff();
+  const { membership } = await requireStaff();
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const supabase = await createClient();
 
@@ -119,7 +120,10 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
         <div className="flex flex-wrap gap-2">
           {!patient.user_id && patient.email && (
             <Dialog label="Invite to app" icon={<Smartphone className="size-4" />} variant="secondary" title="Invite to the patient app" description="They sign up with this email and their file is linked automatically.">
-              <InviteShare url={appUrl} phone={patient.phone} message={patientInviteMessage(firstName, membership.practiceName, appUrl)} />
+              <div className="space-y-3">
+                {patient.phone && <SendWhatsApp action={sendAppInviteAction.bind(null, patient.id, appUrl)} />}
+                <InviteShare url={appUrl} message={patientInviteMessage(firstName, membership.practiceName, appUrl)} />
+              </div>
             </Dialog>
           )}
           {clinical && (
@@ -127,9 +131,6 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
               <Stethoscope className="size-4" /> Start consultation
             </Link>
           )}
-          <Suspense fallback={null}>
-            <PatientWhatsApp patient={patient} membership={membership} senderName={viewer.fullName || null} />
-          </Suspense>
           <Dialog label="Edit details" variant="secondary" title="Edit patient">
             <PatientForm action={updatePatient.bind(null, patient.id)} patient={patient} />
           </Dialog>

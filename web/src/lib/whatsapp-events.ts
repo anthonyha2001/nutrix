@@ -2,7 +2,7 @@ import "server-only";
 import { formatDateIn, formatWhenIn, type Lang } from "@/lib/patient-i18n";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { usd } from "@/lib/money";
-import { sendWhatsApp, whatsappKeys } from "@/lib/whatsapp";
+import { sendWhatsApp } from "@/lib/whatsapp";
 
 // The events that send WhatsApp automatically. Each loads what it needs with
 // the admin client (it also runs from cron, without a user), and is safe to
@@ -25,7 +25,6 @@ async function patient(id: string) {
 }
 
 export async function notifyAppointmentConfirmed(appointmentId: string) {
-  if (!(await whatsappKeys())) return;
   const { data: a } = await createAdminClient().from("appointments").select("id, patient_id, starts_at, status").eq("id", appointmentId).maybeSingle();
   if (!a || a.status !== "confirmed") return;
   const p = await patient(a.patient_id);
@@ -43,7 +42,6 @@ export async function notifyAppointmentConfirmed(appointmentId: string) {
 }
 
 export async function notifyPayment(paymentId: string) {
-  if (!(await whatsappKeys())) return;
   const { data: pay } = await createAdminClient().from("payments").select("id, amount_usd, invoices(patient_id)").eq("id", paymentId).maybeSingle();
   const patientId = (pay?.invoices as { patient_id?: string } | null)?.patient_id;
   if (!pay || !patientId) return;
@@ -54,7 +52,6 @@ export async function notifyPayment(paymentId: string) {
 }
 
 export async function notifyPlanReady(planId: string) {
-  if (!(await whatsappKeys())) return;
   const { data: plan } = await createAdminClient().from("meal_plans").select("id, patient_id, status, activated_at").eq("id", planId).maybeSingle();
   if (!plan || plan.status !== "active") return;
   const p = await patient(plan.patient_id);
@@ -66,7 +63,6 @@ export async function notifyPlanReady(planId: string) {
 // Hourly (cron): reminders for tomorrow's appointments (from 10:00 local
 // time), and packages ending in 3 days with consultations left.
 export async function sendScheduledWhatsApp() {
-  if (!(await whatsappKeys())) return { reminders: 0, packages: 0 };
   const db = createAdminClient();
   const now = new Date();
   const soon = new Date(now.getTime() + 48 * 3600_000).toISOString();
@@ -124,4 +120,20 @@ export async function sendScheduledWhatsApp() {
     packages++;
   }
   return { reminders, packages };
+}
+
+// Sent when staff press "Send on WhatsApp" (no manual links): the app invite
+// and the intake form. Returns why it wasn't sent, if it wasn't.
+export async function sendAppInvite(patientId: string, url: string) {
+  const p = await patient(patientId);
+  if (!p?.practices) return { error: "not_found" as const };
+  const lang = await patientLangOf(p);
+  return sendWhatsApp({ kind: "app_invite", ref: `${p.id}:${new Date().toISOString().slice(0, 10)}`, practiceId: p.practice_id, patientId: p.id, phone: p.phone, lang, params: [first(p.full_name), p.practices.name, url] });
+}
+
+export async function sendIntakeForm(patientId: string, url: string) {
+  const p = await patient(patientId);
+  if (!p?.practices) return { error: "not_found" as const };
+  const lang = await patientLangOf(p);
+  return sendWhatsApp({ kind: "intake_form", ref: url, practiceId: p.practice_id, patientId: p.id, phone: p.phone, lang, params: [first(p.full_name), p.practices.name, url] });
 }

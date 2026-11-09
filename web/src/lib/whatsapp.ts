@@ -10,7 +10,7 @@ import type { Lang } from "@/lib/patient-i18n";
 // English ("en") and Arabic ("ar"), body variables {{1}}, {{2}}… in order.
 // The texts below must match the approved templates word for word (README).
 
-export type WhatsAppKind = "appointment_reminder" | "appointment_confirmed" | "payment_received" | "package_expiring" | "plan_ready";
+export type WhatsAppKind = "appointment_reminder" | "appointment_confirmed" | "payment_received" | "package_expiring" | "plan_ready" | "app_invite" | "intake_form";
 
 const TEMPLATE: Record<WhatsAppKind, string> = {
   appointment_reminder: "nutrix_appointment_reminder",
@@ -18,6 +18,8 @@ const TEMPLATE: Record<WhatsAppKind, string> = {
   payment_received: "nutrix_payment_received",
   package_expiring: "nutrix_package_expiring",
   plan_ready: "nutrix_plan_ready",
+  app_invite: "nutrix_app_invite",
+  intake_form: "nutrix_intake_form",
 };
 
 // What the patient reads (kept in the log).
@@ -42,7 +44,26 @@ export const WHATSAPP_BODIES: Record<WhatsAppKind, Record<Lang, (p: string[]) =>
     en: (p) => `Hi ${p[0]}, ${p[1]} has shared your new meal plan. Open it in the Nutrix app: ${p[2]}`,
     ar: (p) => `مرحباً ${p[0]}، شاركت ${p[1]} برنامجك الغذائي الجديد. افتحه في تطبيق Nutrix: ${p[2]}`,
   },
+  app_invite: {
+    en: (p) => `Hi ${p[0]}, ${p[1]} has set up your Nutrix account. See your meal plan and track your progress: ${p[2]}`,
+    ar: (p) => `مرحباً ${p[0]}، أنشأت ${p[1]} حسابك على Nutrix. اطّلع على برنامجك الغذائي وتابع تقدّمك: ${p[2]}`,
+  },
+  intake_form: {
+    en: (p) => `Hi ${p[0]}, before your first visit at ${p[1]}, please fill in this short form (about 5 minutes): ${p[2]}`,
+    ar: (p) => `مرحباً ${p[0]}، قبل زيارتك الأولى إلى ${p[1]}، يرجى تعبئة هذه الاستمارة القصيرة (حوالي 5 دقائق): ${p[2]}`,
+  },
 };
+
+type Keys = { token: string; phoneNumberId: string; sender: "nutrix" | "own" };
+
+// The number a practice sends from: its own WhatsApp API when the owner turned
+// it on, else the default Nutrix number.
+export async function keysFor(practiceId: string): Promise<Keys | null> {
+  const { data } = await createAdminClient().from("practice_whatsapp").select("use_own, token, phone_number_id").eq("practice_id", practiceId).maybeSingle();
+  if (data?.use_own && data.token && data.phone_number_id) return { token: data.token, phoneNumberId: data.phone_number_id, sender: "own" };
+  const nutrix = await whatsappKeys();
+  return nutrix ? { ...nutrix, sender: "nutrix" } : null;
+}
 
 export const whatsappKeys = cache(async (): Promise<{ token: string; phoneNumberId: string } | null> => {
   if (process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID) return { token: process.env.WHATSAPP_TOKEN, phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID };
@@ -55,23 +76,23 @@ export const whatsappKeys = cache(async (): Promise<{ token: string; phoneNumber
 // kept in whatsapp_log for the practice to see.
 export async function sendWhatsApp(msg: { kind: WhatsAppKind; ref: string; practiceId: string; patientId: string; phone: string | null; lang: Lang; params: string[] }) {
   const to = waNumber(msg.phone);
-  if (!to) return;
-  const keys = await whatsappKeys();
-  if (!keys) return;
+  if (!to) return { error: "no_phone" as const };
+  const keys = await keysFor(msg.practiceId);
+  if (!keys) return { error: "not_connected" as const };
   // Feature switches are read with the admin client here (no user session in cron).
   const admin = createAdminClient();
   const { data: on } = await admin.rpc("practice_features", { p_practice_id: msg.practiceId });
-  if (!(on ?? []).includes("whatsapp")) return;
+  if (!(on ?? []).includes("whatsapp")) return { error: "off" as const };
 
   const { data: row } = await admin
     .from("whatsapp_log")
     .upsert(
-      { practice_id: msg.practiceId, patient_id: msg.patientId, kind: msg.kind, ref: msg.ref, lang: msg.lang, to_phone: to, body: WHATSAPP_BODIES[msg.kind][msg.lang](msg.params) },
+      { practice_id: msg.practiceId, patient_id: msg.patientId, kind: msg.kind, ref: msg.ref, lang: msg.lang, to_phone: to, sender: keys.sender, body: WHATSAPP_BODIES[msg.kind][msg.lang](msg.params) },
       { onConflict: "kind,ref", ignoreDuplicates: true },
     )
     .select("id")
     .maybeSingle();
-  if (!row) return; // already sent
+  if (!row) return { error: "already_sent" as const };
 
   let error: string | null = null;
   try {
@@ -90,9 +111,10 @@ export async function sendWhatsApp(msg: { kind: WhatsAppKind; ref: string; pract
     error = e instanceof Error ? e.message : "Network error";
   }
   await admin.from("whatsapp_log").update({ status: error ? "failed" : "sent", error }).eq("id", row.id);
+  return error ? { error: "failed" as const, detail: error } : { ok: true as const };
 }
 
 // Used by staff pages: is automatic WhatsApp on for this practice?
 export async function whatsappOn(practiceId: string) {
-  return Boolean(await whatsappKeys()) && (await practiceFeatures(practiceId)).has("whatsapp");
+  return Boolean(await keysFor(practiceId)) && (await practiceFeatures(practiceId)).has("whatsapp");
 }

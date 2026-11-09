@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { WhatsAppLog } from "@/components/whatsapp-log";
 import { Activity, BellRing } from "lucide-react";
 import { Badge, Card, PageHeader, SectionTitle } from "@/components/ui";
 import { DEVICES, FOLLOW_UP_RULES } from "@/lib/modules";
@@ -52,7 +51,6 @@ export default async function SettingsPage() {
           </ul>
         </Card>
       </div>
-      <WhatsAppLog practiceId={membership.practiceId} timeZone={membership.timezone} />
     </div>
   );
 }

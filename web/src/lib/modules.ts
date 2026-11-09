@@ -15,6 +15,7 @@ export type ModuleIcon =
   | "billing"
   | "reports"
   | "team"
+  | "whatsapp"
   | "settings";
 
 export type Phase = 1 | 2 | 3 | 4;
@@ -180,6 +181,16 @@ export const MODULES: Module[] = [
     phase: 1,
     summary: "Dietitians and assistants in your practice.",
     planned: ["Invite by email", "Roles: owner, dietitian, assistant", "Assign patients to dietitians"],
+  },
+  {
+    href: "/dashboard/whatsapp",
+    section: "Practice",
+    label: "WhatsApp",
+    icon: "whatsapp",
+    phase: 2,
+    roles: BILLING_ROLES,
+    summary: "Automatic WhatsApp messages and what was sent.",
+    planned: [],
   },
   {
     href: "/dashboard/settings",

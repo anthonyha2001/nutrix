@@ -785,6 +785,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"practice_whatsapp": {
+                  Row: {
+                    "phone_number_id": string,"practice_id": string,"token": string,"updated_at": string,"use_own": boolean
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "phone_number_id"?: string,"practice_id": string,"token"?: string,"updated_at"?: string,"use_own"?: boolean
+                  }
+                  Update: {
+                    "phone_number_id"?: string,"practice_id"?: string,"token"?: string,"updated_at"?: string,"use_own"?: boolean
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "practice_whatsapp_practice_id_fkey"
+      columns: ["practice_id"]
+isOneToOne: true
+      referencedRelation: "practices"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"practices": {
                   Row: {
                     "created_at": string,"created_by": string | null,"id": string,"is_lab": boolean,"lbp_rate": number,"name": string,"slug": string,"timezone": string
@@ -907,14 +927,14 @@ isOneToOne: false
                   ]
                 },"whatsapp_log": {
                   Row: {
-                    "body": string,"created_at": string,"error": string | null,"id": string,"kind": string,"lang": string,"patient_id": string | null,"practice_id": string,"ref": string,"status": string,"to_phone": string | null
+                    "body": string,"created_at": string,"error": string | null,"id": string,"kind": string,"lang": string,"patient_id": string | null,"practice_id": string,"ref": string,"sender": string,"status": string,"to_phone": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "body": string,"created_at"?: string,"error"?: string | null,"id"?: string,"kind": string,"lang"?: string,"patient_id"?: string | null,"practice_id": string,"ref": string,"status"?: string,"to_phone"?: string | null
+                    "body": string,"created_at"?: string,"error"?: string | null,"id"?: string,"kind": string,"lang"?: string,"patient_id"?: string | null,"practice_id": string,"ref": string,"sender"?: string,"status"?: string,"to_phone"?: string | null
                   }
                   Update: {
-                    "body"?: string,"created_at"?: string,"error"?: string | null,"id"?: string,"kind"?: string,"lang"?: string,"patient_id"?: string | null,"practice_id"?: string,"ref"?: string,"status"?: string,"to_phone"?: string | null
+                    "body"?: string,"created_at"?: string,"error"?: string | null,"id"?: string,"kind"?: string,"lang"?: string,"patient_id"?: string | null,"practice_id"?: string,"ref"?: string,"sender"?: string,"status"?: string,"to_phone"?: string | null
                   }
                   Relationships: [
                     {
@@ -1136,6 +1156,14 @@ isOneToOne: false
                            },
 "practice_features":
 { Args: { "p_practice_id": string }; Returns: (string)[]
+                           },
+"practice_set_whatsapp":
+{ Args: { "p_phone_number_id"?: string,"p_practice_id": string,"p_token"?: string,"p_use_own": boolean }; Returns: undefined
+                           },
+"practice_whatsapp_status":
+{ Args: { "p_practice_id": string }; Returns: {
+              "has_own_keys": boolean,"nutrix_ready": boolean,"phone_number_id": string,"use_own": boolean
+            }[]
                            },
 "recompute_recipe":
 { Args: { "p_recipe_id": string }; Returns: undefined
