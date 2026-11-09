@@ -7,12 +7,13 @@ import { formatDate } from "@/lib/format";
 import { usd } from "@/lib/money";
 import { requirePlatformAdmin } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { createLab, leaveSupport, openPracticeAs, openPracticeForm, setOverride } from "./actions";
-import { OpenAsForm, OverrideForm, RolloutSelect } from "./forms";
+import { WHATSAPP_BODIES } from "@/lib/whatsapp";
+import { createLab, leaveSupport, openPracticeAs, openPracticeForm, saveWhatsAppKeys, setOverride } from "./actions";
+import { OpenAsForm, OverrideForm, RolloutSelect, WhatsAppKeysForm } from "./forms";
 
 export const metadata: Metadata = { title: "Platform" };
 
-const TABS = ["practices", "lab"] as const;
+const TABS = ["practices", "lab", "whatsapp"] as const;
 const LAB_ROLES = [
   { role: "owner", label: "Owner" },
   { role: "dietitian", label: "Dietitian" },
@@ -29,10 +30,11 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   const viewer = await requirePlatformAdmin();
   const { tab } = await searchParams;
   const supabase = await createClient();
-  const [{ data: practices }, { data: features }, { data: overrides }] = await Promise.all([
+  const [{ data: practices }, { data: features }, { data: overrides }, { data: waConfigured }] = await Promise.all([
     supabase.rpc("admin_practice_overview"),
     supabase.from("features").select("key, name, description, rollout").order("created_at"),
     supabase.from("practice_feature_overrides").select("practice_id, feature_key, enabled"),
+    supabase.rpc("admin_whatsapp_configured"),
   ]);
   const list = practices ?? [];
   const real = list.filter((p) => !p.is_lab);
@@ -88,6 +90,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
         tabs={[
           { id: "practices", label: "Practices", count: real.length },
           { id: "lab", label: "Lab" },
+          { id: "whatsapp", label: "WhatsApp" },
         ]}
       />
 
@@ -135,6 +138,31 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
           )}
         </Card>
         <p className="mt-2 text-xs text-muted">Opening a practice shows it exactly as that role sees it. Changes you make there are real.</p>
+      </TabPanel>
+
+      <TabPanel id="whatsapp" tabs={TABS}>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="p-5">
+            <h2 className="flex items-center gap-2 font-semibold">
+              Automatic WhatsApp <Badge tone={waConfigured ? "green" : "amber"}>{waConfigured ? "Connected" : "Not connected"}</Badge>
+            </h2>
+            <p className="mt-1 mb-4 text-sm text-muted">One Nutrix number sends for every practice, through Meta&apos;s WhatsApp Cloud API. Practices can be switched off in Lab, Features.</p>
+            <WhatsAppKeysForm action={saveWhatsAppKeys} configured={Boolean(waConfigured)} />
+          </Card>
+          <Card className="p-5">
+            <h2 className="font-semibold">Templates to approve in WhatsApp Manager</h2>
+            <p className="mt-1 mb-3 text-sm text-muted">Category Utility, each in English (en) and Arabic (ar), with exactly this text. Variables are filled in order.</p>
+            <ul className="space-y-3 text-sm">
+              {(Object.keys(WHATSAPP_BODIES) as (keyof typeof WHATSAPP_BODIES)[]).map((k) => (
+                <li key={k}>
+                  <p className="font-mono text-xs font-semibold">nutrix_{k}</p>
+                  <p className="text-muted">{WHATSAPP_BODIES[k].en(["{{1}}", "{{2}}", "{{3}}", "{{4}}", "{{5}}"])}</p>
+                  <p className="text-muted" dir="rtl">{WHATSAPP_BODIES[k].ar(["{{1}}", "{{2}}", "{{3}}", "{{4}}", "{{5}}"])}</p>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </div>
       </TabPanel>
 
       <TabPanel id="lab" tabs={TABS}>

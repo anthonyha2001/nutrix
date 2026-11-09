@@ -55,3 +55,14 @@ export async function setOverride(key: string, _prev: ActionState, formData: For
   refresh();
   return { success: "Saved" };
 }
+
+// Keys for the Nutrix WhatsApp number (Meta WhatsApp Cloud API). A blank token keeps the saved one.
+export async function saveWhatsAppKeys(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requirePlatformAdmin();
+  const phoneId = text(formData, "phone_number_id");
+  if (phoneId && !/^d{6,20}$/.test(phoneId)) return { error: "The phone number ID is the long number from WhatsApp Manager." };
+  const { error } = await (await createClient()).rpc("admin_set_whatsapp_keys", { p_token: text(formData, "token"), p_phone_number_id: phoneId });
+  if (error) return { error: errorMessage(error, "Couldn't save.") };
+  refresh();
+  return { success: "WhatsApp keys saved" };
+}

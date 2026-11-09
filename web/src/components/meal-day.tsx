@@ -27,7 +27,7 @@ export function MealDay({
   return (
     <div className="space-y-3">
       {day.meals.map((meal) => (
-        <Card key={meal.key} className="rounded-2xl">
+        <Card key={meal.key} className="rounded-2xl transition-shadow duration-200 hover:shadow-[0_6px_20px_-10px_rgb(13_17_23/0.18)]">
           <div className="flex items-baseline justify-between gap-3 px-5 pt-4 pb-2">
             <h3 className="font-semibold">
               {meal.name || t.slots[meal.slot]}

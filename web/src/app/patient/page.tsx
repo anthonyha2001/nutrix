@@ -64,7 +64,7 @@ export default async function TodayPage() {
       </Card>
 
       {next && (
-        <Link href="/patient/appointments" className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-4">
+        <Link href="/patient/appointments" className="lift flex items-center gap-3 rounded-2xl border border-line bg-surface p-4">
           <span className="grid size-10 place-items-center rounded-full bg-canvas">
             <CalendarDays className="size-5" />
           </span>

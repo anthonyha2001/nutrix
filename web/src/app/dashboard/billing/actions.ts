@@ -1,5 +1,7 @@
 "use server";
 
+import { after } from "next/server";
+import { notifyPayment } from "@/lib/whatsapp-events";
 import { createClient } from "@/lib/supabase/server";
 import { done } from "@/lib/done";
 import { errorMessage, money, text, type ActionState } from "@/lib/action-result";
@@ -89,13 +91,14 @@ export async function recordPayment(invoiceId: string, _prev: ActionState, formD
   const usdAmount = method === "cash_lbp" ? undefined : money(formData, "amount_usd");
   if (method === "cash_lbp" && !(lbpAmount! > 0)) return { error: "Enter the amount in LBP." };
   if (method !== "cash_lbp" && (Number.isNaN(usdAmount) || !(usdAmount! > 0))) return { error: "Enter the amount in USD." };
-  const { error } = await (await createClient()).rpc("record_payment", {
+  const { data: paymentId, error } = await (await createClient()).rpc("record_payment", {
     p_invoice_id: invoiceId,
     p_method: method,
     p_amount_usd: usdAmount,
     p_lbp_amount: lbpAmount,
     p_note: text(formData, "note"),
   });
+  if (!error && paymentId) after(() => notifyPayment(paymentId));
   return error ? { error: errorMessage(error, "Couldn't record the payment.") } : done("Payment recorded");
 }
 

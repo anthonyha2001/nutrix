@@ -44,7 +44,7 @@ export function WaterCard({ date, ml, goal = 2000, lang }: { date: string; ml: n
       </div>
       <div className="mt-3 flex flex-wrap gap-1.5" aria-hidden>
         {Array.from({ length: total }, (_, i) => (
-          <Droplet key={i} className={`size-6 transition ${i < glasses ? "fill-sky-400 text-sky-500" : "text-line"}`} />
+          <Droplet key={i === glasses - 1 ? `last-${glasses}` : i} className={`size-6 transition-colors duration-300 ${i < glasses ? "fill-sky-400 text-sky-500" : "text-line"} ${i === glasses - 1 ? "drop-in" : ""}`} />
         ))}
       </div>
       <div className="mt-4 flex gap-2">
@@ -102,8 +102,8 @@ export function CheckinCard({ date, checkin, lang }: { date: string; checkin: Ch
   const done = Boolean(checkin?.checked_in);
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="flex w-full items-center gap-3 rounded-2xl border border-line bg-surface p-5 text-start transition hover:border-ink/20">
-        <span className={`grid size-10 shrink-0 place-items-center rounded-full ${done ? "bg-brand" : "bg-canvas"}`}>{done ? <Check className="size-5" /> : <Plus className="size-5 text-muted" />}</span>
+      <button type="button" onClick={() => setOpen(true)} className="lift flex w-full items-center gap-3 rounded-2xl border border-line bg-surface p-5 text-start hover:border-ink/20">
+        <span key={done ? "done" : "todo"} className={`grid size-10 shrink-0 place-items-center rounded-full ${done ? "check-pop bg-brand" : "bg-canvas"}`}>{done ? <Check className="size-5" /> : <Plus className="size-5 text-muted" />}</span>
         <span className="min-w-0 flex-1">
           <span className="block font-semibold">{t.title}</span>
           <span className="block text-sm text-muted">{done ? t.done : t.prompt}</span>
@@ -156,7 +156,7 @@ export function LogMealButton({ date, meal, logged, lang }: { date: string; meal
       <button type="button" onClick={() => setOpen(true)} className={buttonClass(logged ? "ghost" : "secondary", "h-9 text-xs")}>
         {logged ? (
           <>
-            <Check className="size-4 text-success" /> {t.log.logged}
+            <Check className="check-pop size-4 rounded-full text-success" /> {t.log.logged}
           </>
         ) : (
           t.log.ate
@@ -498,7 +498,7 @@ export function ShoppingChecklist({ planId, groups, lang }: { planId: string; gr
       {groups.map((g) => (
         <div key={g.id} className="rounded-2xl border border-line bg-surface">
           <p className="px-5 pt-4 pb-2 text-sm font-semibold">{g.title}</p>
-          <ul className="divide-y divide-line px-2 pb-2">
+          <ul className="rise-list divide-y divide-line px-2 pb-2">
             {g.items.map((it) => {
               const on = ticked.has(it.key);
               return (
@@ -515,7 +515,7 @@ export function ShoppingChecklist({ planId, groups, lang }: { planId: string; gr
                       }}
                       className="size-5 shrink-0 accent-ink"
                     />
-                    <span className={`min-w-0 flex-1 text-sm ${on ? "text-muted line-through" : ""}`}>
+                    <span data-on={on} className="tick min-w-0 flex-1 text-sm">
                       <bdi>{it.name}</bdi>
                       {it.alt && (
                         <bdi className="block text-xs text-muted" dir="ltr">
@@ -523,7 +523,7 @@ export function ShoppingChecklist({ planId, groups, lang }: { planId: string; gr
                         </bdi>
                       )}
                     </span>
-                    <span className={`shrink-0 text-sm tabular-nums ${on ? "text-muted line-through" : "text-ink/80"}`}>{it.amount}</span>
+                    <span data-on={on} className="tick shrink-0 text-sm text-ink/80 tabular-nums">{it.amount}</span>
                   </label>
                 </li>
               );

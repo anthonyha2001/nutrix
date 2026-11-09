@@ -80,7 +80,7 @@ export default async function DiaryPage({ searchParams }: PageProps<"/patient/di
               </span>
             </div>
             {items.length ? (
-              <ul className="divide-y divide-line px-5 pb-2">
+              <ul className="rise-list divide-y divide-line px-5 pb-2">
                 {items.map((e) => {
                   const name = (e.food_id && names.get(e.food_id)) || e.name;
                   const recipe = e.food_id ? recipes.get(e.food_id) : undefined;

@@ -1,5 +1,7 @@
 "use server";
 
+import { after } from "next/server";
+import { notifyPlanReady } from "@/lib/whatsapp-events";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { done } from "@/lib/done";
@@ -37,6 +39,7 @@ export async function savePlanAction(
   if (options?.give && savedId) {
     const { error: giveError } = await supabase.rpc("activate_meal_plan", { p_id: savedId });
     if (giveError) return { error: errorMessage(giveError, "The plan was saved as a draft, but couldn't be given to the patient.") };
+    after(() => notifyPlanReady(savedId));
     return done("Plan given to the patient");
   }
   return done(planId ? "Plan saved" : "Plan created");
@@ -61,6 +64,7 @@ export async function saveTemplateAction(templateId: string | null, kind: Templa
 export async function activatePlan(planId: string): Promise<ActionState> {
   await requireStaff(CLINICAL_ROLES);
   const { error } = await (await createClient()).rpc("activate_meal_plan", { p_id: planId });
+  if (!error) after(() => notifyPlanReady(planId));
   return error ? { error: errorMessage(error) } : done("Plan given to the patient");
 }
 

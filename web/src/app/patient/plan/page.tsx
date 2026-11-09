@@ -45,7 +45,7 @@ export default async function PlanPage() {
           <MacroSummary totals={plan.content.totals} targets={plan.targets} compact neutral lang={lang} />
         </Card>
       )}
-      <Link href="/patient/shopping" className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-sm font-medium transition hover:border-ink/20">
+      <Link href="/patient/shopping" className="lift flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-sm font-medium hover:border-ink/20">
         <ShoppingBasket className="size-5 text-brand-strong" />
         {t.plan.shoppingLink}
       </Link>

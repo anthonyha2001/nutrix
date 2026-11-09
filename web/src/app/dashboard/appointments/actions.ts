@@ -1,5 +1,7 @@
 "use server";
 
+import { after } from "next/server";
+import { notifyAppointmentConfirmed } from "@/lib/whatsapp-events";
 import { createClient } from "@/lib/supabase/server";
 import { done } from "@/lib/done";
 import { errorMessage, text, type ActionState } from "@/lib/action-result";
@@ -15,7 +17,7 @@ export async function bookAppointment(_prev: ActionState, formData: FormData): P
   if (!patientId) return { error: "Choose a patient." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return { error: "Choose a date and time." };
   const duration = Number(text(formData, "duration_min")) || undefined;
-  const { error } = await (await createClient()).rpc("book_appointment", {
+  const { data: bookedId, error } = await (await createClient()).rpc("book_appointment", {
     p_patient_id: patientId,
     p_starts_at: localToIso(date, time, membership.timezone),
     p_duration_min: duration,
@@ -24,6 +26,7 @@ export async function bookAppointment(_prev: ActionState, formData: FormData): P
     p_online: formData.get("online") === "on",
     p_note: text(formData, "note"),
   });
+  if (!error && bookedId) after(() => notifyAppointmentConfirmed(bookedId));
   return error ? { error: errorMessage(error, "Couldn't book.") } : done("Appointment booked");
 }
 
@@ -37,12 +40,14 @@ export async function rescheduleAppointment(id: string, _prev: ActionState, form
     p_starts_at: localToIso(date, time, membership.timezone),
     p_duration_min: Number(text(formData, "duration_min")) || undefined,
   });
+  if (!error) after(() => notifyAppointmentConfirmed(id));
   return error ? { error: errorMessage(error, "Couldn't move it.") } : done("Appointment moved");
 }
 
 export async function confirmAppointment(id: string): Promise<ActionState> {
   await requireStaff();
   const { error } = await (await createClient()).rpc("confirm_appointment", { p_id: id });
+  if (!error) after(() => notifyAppointmentConfirmed(id));
   return error ? { error: errorMessage(error) } : done("Appointment confirmed");
 }
 

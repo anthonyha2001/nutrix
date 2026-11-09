@@ -719,6 +719,20 @@ isOneToOne: true
                   Relationships: [
                     
                   ]
+                },"platform_secrets": {
+                  Row: {
+                    "id": boolean,"updated_at": string,"whatsapp_phone_number_id": string,"whatsapp_token": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "id"?: boolean,"updated_at"?: string,"whatsapp_phone_number_id"?: string,"whatsapp_token"?: string
+                  }
+                  Update: {
+                    "id"?: boolean,"updated_at"?: string,"whatsapp_phone_number_id"?: string,"whatsapp_token"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"practice_feature_overrides": {
                   Row: {
                     "enabled": boolean,"feature_key": string,"practice_id": string
@@ -891,6 +905,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"whatsapp_log": {
+                  Row: {
+                    "body": string,"created_at": string,"error": string | null,"id": string,"kind": string,"lang": string,"patient_id": string | null,"practice_id": string,"ref": string,"status": string,"to_phone": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body": string,"created_at"?: string,"error"?: string | null,"id"?: string,"kind": string,"lang"?: string,"patient_id"?: string | null,"practice_id": string,"ref": string,"status"?: string,"to_phone"?: string | null
+                  }
+                  Update: {
+                    "body"?: string,"created_at"?: string,"error"?: string | null,"id"?: string,"kind"?: string,"lang"?: string,"patient_id"?: string | null,"practice_id"?: string,"ref"?: string,"status"?: string,"to_phone"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "whatsapp_log_patient_id_fkey"
+      columns: ["patient_id"]
+isOneToOne: false
+      referencedRelation: "patients"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "whatsapp_log_practice_id_fkey"
+      columns: ["practice_id"]
+isOneToOne: false
+      referencedRelation: "practices"
+      referencedColumns: ["id"]
+    }
+                  ]
                 }
           }
           Views: {
@@ -974,6 +1014,12 @@ isOneToOne: false
                            },
 "admin_set_rollout":
 { Args: { "p_key": string,"p_rollout": string }; Returns: undefined
+                           },
+"admin_set_whatsapp_keys":
+{ Args: { "p_phone_number_id": string,"p_token": string }; Returns: undefined
+                           },
+"admin_whatsapp_configured":
+{ Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "archive_meal_plan":
 { Args: { "p_id": string }; Returns: undefined

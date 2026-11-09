@@ -1,3 +1,4 @@
+import { CountUp } from "@/components/count-up";
 import { energySplit, round, type Macros, type Targets } from "@/lib/nutrition";
 import { PATIENT_TEXT, type Lang } from "@/lib/patient-i18n";
 
@@ -38,7 +39,7 @@ export function MacroSummary({
                 {c.label}
               </span>
               <span className={`block font-semibold tabular-nums ${compact ? "text-sm" : "text-lg"} ${tone}`}>
-                {round(c.value)}
+                <CountUp value={String(round(c.value))} />
                 <span className="ms-0.5 text-xs font-normal text-muted">{c.unit}</span>
               </span>
               {c.target ? <span className="block text-xs text-muted tabular-nums">{m.of(`${round(c.target)} ${c.unit}`)}</span> : null}
@@ -46,7 +47,7 @@ export function MacroSummary({
           );
         })}
       </div>
-      <div className="flex h-2 overflow-hidden rounded-full bg-line" aria-label={PATIENT_TEXT[lang].split(round(split.protein), round(split.carbs), round(split.fat))}>
+      <div className="bar-grow flex h-2 overflow-hidden rounded-full bg-line" aria-label={PATIENT_TEXT[lang].split(round(split.protein), round(split.carbs), round(split.fat))}>
         <span className="bg-protein" style={{ width: `${split.protein}%` }} />
         <span className="bg-carbs" style={{ width: `${split.carbs}%` }} />
         <span className="bg-fat" style={{ width: `${split.fat}%` }} />

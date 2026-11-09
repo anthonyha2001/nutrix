@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useActionState, useTransition } from "react";
 import { useDialogAction } from "@/components/dialog";
 import { showToast } from "@/components/toaster";
 import { Alert, Button, Field, inputClass } from "@/components/ui";
@@ -86,6 +86,28 @@ export function OpenAsForm({ action, practices }: { action: (formData: FormData)
         </select>
       </Field>
       <Button type="submit">Open</Button>
+    </form>
+  );
+}
+
+export function WhatsAppKeysForm({ action, configured }: { action: (prev: ActionState, formData: FormData) => Promise<ActionState>; configured: boolean }) {
+  const [state, formAction, pending] = useActionState(async (prev: ActionState, fd: FormData) => {
+    const r = await action(prev, fd);
+    if (r.success) showToast(r.success);
+    return r;
+  }, {});
+  return (
+    <form action={formAction} className="space-y-4">
+      {state.error && <Alert tone="error">{state.error}</Alert>}
+      <Field label="Phone number ID" hint="WhatsApp Manager, API setup: the long number under your phone number.">
+        <input name="phone_number_id" inputMode="numeric" className={inputClass} />
+      </Field>
+      <Field label="Access token" hint={configured ? "Leave empty to keep the saved token." : "A permanent token of a system user with whatsapp_business_messaging."}>
+        <input name="token" type="password" autoComplete="off" className={inputClass} />
+      </Field>
+      <Button type="submit" disabled={pending}>
+        {pending ? "Saving…" : "Save keys"}
+      </Button>
     </form>
   );
 }
