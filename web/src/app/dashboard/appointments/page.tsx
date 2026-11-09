@@ -171,11 +171,12 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/das
                         href={link({ appt: a.id })}
                         movable={a.status === "confirmed" || a.status === "requested"}
                         moving={{ id: a.id, name: a.patients?.full_name ?? "this appointment", minutes: Math.round(e - s) }}
-                        className={`absolute inset-x-1 z-10 overflow-hidden rounded-md border px-1.5 py-1 text-[11px] leading-tight transition hover:shadow-md ${TONE_CLASS[a.status]}`}
+                        className={`absolute inset-x-1 z-10 overflow-hidden rounded-md border px-1.5 text-[11px] leading-tight transition hover:shadow-md ${height < 40 ? "flex items-center gap-1.5 py-0" : "py-1"} ${TONE_CLASS[a.status]}`}
                         style={{ top, height }}
                       >
-                        <span className="block font-semibold">{formatTime(a.starts_at, tz)}</span>
-                        <span className="block truncate">{a.patients?.full_name}</span>
+                        {/* Short visits (30 min): time and name on one line, so the name is never cut. */}
+                        <span className={`shrink-0 font-semibold ${height < 40 ? "" : "block"}`}>{formatTime(a.starts_at, tz)}</span>
+                        <span className={`min-w-0 truncate ${height < 40 ? "" : "block"}`}>{a.patients?.full_name}</span>
                         {a.online && <Video className="absolute top-1 right-1 size-3" aria-label="Online" />}
                       </AppointmentBlock>
                     );
