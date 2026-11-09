@@ -24,6 +24,7 @@ type Words = {
   fat: string;
   avoid: string;
   yourDay: string;
+  mealPlan: string;
   or: string;
   fromDietitian: string;
   shoppingList: string;
@@ -50,6 +51,7 @@ export const PLAN_WORDS: Record<PlanLang, Words> = {
     fat: "fat",
     avoid: "Avoid",
     yourDay: "Your day",
+    mealPlan: "Meal plan",
     or: "Or",
     fromDietitian: "From your dietitian",
     shoppingList: "Shopping list",
@@ -72,6 +74,7 @@ export const PLAN_WORDS: Record<PlanLang, Words> = {
     fat: "lipides",
     avoid: "À éviter",
     yourDay: "Votre journée",
+    mealPlan: "Programme alimentaire",
     or: "Ou",
     fromDietitian: "De votre diététicienne",
     shoppingList: "Liste de courses",
@@ -94,6 +97,7 @@ export const PLAN_WORDS: Record<PlanLang, Words> = {
     fat: "دهون",
     avoid: "تجنّب",
     yourDay: "يومك",
+    mealPlan: "البرنامج الغذائي",
     or: "أو",
     fromDietitian: "من اختصاصية التغذية",
     shoppingList: "لائحة المشتريات",

@@ -11,7 +11,7 @@ import { ActionButton } from "@/components/action-button";
 import { Dialog } from "@/components/dialog";
 import { InviteShare } from "@/components/invite-share";
 import { SendWhatsApp } from "@/components/send-whatsapp";
-import { sendAppInviteAction } from "../../whatsapp/actions";
+import { sendAppInviteAction, sendPlanPdfAction } from "../../whatsapp/actions";
 import { MacroSummary } from "@/components/macro-summary";
 import { PageTabs, TabPanel } from "@/components/page-tabs";
 import { PlanBuilder } from "@/components/plan-builder";
@@ -386,7 +386,14 @@ export default async function PatientPage({ params, searchParams }: PageProps<"/
                         },
                         p.status === "active" && { kind: "action", label: "End this plan", action: archivePlan.bind(null, p.id), confirm: `End "${p.name}"? It stays in previous plans.` },
                         p.status === "archived" && { kind: "action", label: "Give again", action: activatePlan.bind(null, p.id) },
-                        { kind: "link", label: "Print or PDF", href: `/print/plan/${p.id}` },
+                        { kind: "link", label: "Download PDF", download: true, href: `/api/plans/${p.id}/pdf` },
+                        { kind: "link", label: "Print or other language", href: `/print/plan/${p.id}` },
+                        p.status !== "draft" && {
+                          kind: "action",
+                          label: "Send PDF on WhatsApp",
+                          action: sendPlanPdfAction.bind(null, p.id),
+                          confirm: `Send "${p.name}" as a PDF to ${firstName} on WhatsApp?`,
+                        },
                         { kind: "action", label: "Duplicate", action: duplicatePlan.bind(null, p.id) },
                         (others?.length ?? 0) > 0 && {
                           kind: "dialog",

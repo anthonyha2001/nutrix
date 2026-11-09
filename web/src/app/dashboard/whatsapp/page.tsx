@@ -17,6 +17,7 @@ const KIND: Record<string, string> = {
   plan_ready: "New meal plan",
   app_invite: "App invite",
   intake_form: "Intake form",
+  plan_pdf: "Meal plan PDF",
 };
 const STATUS = ["all", "sent", "failed"] as const;
 
@@ -68,7 +69,7 @@ export default async function WhatsAppPage({ searchParams }: PageProps<"/dashboa
           <ul className="max-h-80 space-y-3 overflow-y-auto pe-1 text-sm">
             {(Object.keys(WHATSAPP_BODIES) as (keyof typeof WHATSAPP_BODIES)[]).map((k) => (
               <li key={k}>
-                <p className="font-mono text-xs font-semibold">nutrix_{k}</p>
+                <p className="font-mono text-xs font-semibold">nutrix_{k}{k === "plan_pdf" && <span className="font-sans font-normal text-muted"> · header: Document</span>}</p>
                 <p className="text-muted">{WHATSAPP_BODIES[k].en(["{{1}}", "{{2}}", "{{3}}", "{{4}}", "{{5}}"])}</p>
                 <p className="text-muted" dir="rtl">
                   {WHATSAPP_BODIES[k].ar(["{{1}}", "{{2}}", "{{3}}", "{{4}}", "{{5}}"])}

@@ -137,3 +137,15 @@ export async function sendIntakeForm(patientId: string, url: string) {
   const lang = await patientLangOf(p);
   return sendWhatsApp({ kind: "intake_form", ref: url, practiceId: p.practice_id, patientId: p.id, phone: p.phone, lang, params: [first(p.full_name), p.practices.name, url] });
 }
+
+// "Send PDF on WhatsApp": the plan as a document, in the patient's language.
+export async function sendPlanPdf(planId: string, render: (lang: Lang) => Promise<{ data: Buffer; filename: string }>) {
+  const { data: plan } = await createAdminClient().from("meal_plans").select("id, patient_id").eq("id", planId).maybeSingle();
+  if (!plan) return { error: "not_found" as const };
+  const p = await patient(plan.patient_id);
+  if (!p?.practices) return { error: "not_found" as const };
+  const lang = await patientLangOf(p);
+  const document = await render(lang);
+  // One per plan per minute: a double click doesn't send it twice.
+  return sendWhatsApp({ kind: "plan_pdf", ref: `${plan.id}:${new Date().toISOString().slice(0, 16)}`, practiceId: p.practice_id, patientId: p.id, phone: p.phone, lang, params: [first(p.full_name), p.practices.name], document });
+}

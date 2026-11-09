@@ -10,7 +10,7 @@ import { showToast } from "@/components/toaster";
 import type { ActionState } from "@/lib/action-result";
 
 export type RowMenuItem =
-  | { kind: "link"; label: string; href: string }
+  | { kind: "link"; label: string; href: string; download?: boolean }
   | {
       kind: "action";
       label: string;
@@ -113,7 +113,21 @@ export function RowMenu({ items, label = "Actions" }: { items: (RowMenuItem | fa
             className="z-50 rounded-xl border border-line bg-surface p-1 shadow-lg"
           >
             {shown.map((item) =>
-              item.kind === "link" ? (
+              item.kind === "link" && item.download ? (
+                <a
+                  key={item.label}
+                  role="menuitem"
+                  href={item.href}
+                  download
+                  onClick={() => {
+                    setPos(null);
+                    showToast("Preparing the PDF…");
+                  }}
+                  className={itemClass()}
+                >
+                  {item.label}
+                </a>
+              ) : item.kind === "link" ? (
                 <Link key={item.label} role="menuitem" href={item.href} onClick={() => setPos(null)} className={itemClass()}>
                   {item.label}
                 </Link>

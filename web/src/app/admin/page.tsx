@@ -155,7 +155,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
             <ul className="space-y-3 text-sm">
               {(Object.keys(WHATSAPP_BODIES) as (keyof typeof WHATSAPP_BODIES)[]).map((k) => (
                 <li key={k}>
-                  <p className="font-mono text-xs font-semibold">nutrix_{k}</p>
+                  <p className="font-mono text-xs font-semibold">nutrix_{k}{k === "plan_pdf" && <span className="font-sans font-normal text-muted"> · header: Document</span>}</p>
                   <p className="text-muted">{WHATSAPP_BODIES[k].en(["{{1}}", "{{2}}", "{{3}}", "{{4}}", "{{5}}"])}</p>
                   <p className="text-muted" dir="rtl">{WHATSAPP_BODIES[k].ar(["{{1}}", "{{2}}", "{{3}}", "{{4}}", "{{5}}"])}</p>
                 </li>

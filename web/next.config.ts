@@ -5,6 +5,12 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   reactCompiler: true,
+  // Headless Chrome for plan PDFs stays outside the bundle.
+  serverExternalPackages: ["puppeteer-core", "@sparticuz/chromium"],
+  outputFileTracingIncludes: {
+    "/api/plans/[id]/pdf": ["./node_modules/@sparticuz/chromium/bin/**"],
+    "/dashboard/patients/[id]": ["./node_modules/@sparticuz/chromium/bin/**"],
+  },
   devIndicators: { position: "bottom-right" },
   experimental: {
     // Keep recently opened pages so going back is instant.

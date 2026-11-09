@@ -26,6 +26,8 @@ export default async function PlanPrint({ params, searchParams }: PageProps<"/pr
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const lang: PlanLang = sp.lang === "ar" || sp.lang === "fr" ? sp.lang : "en";
   const withList = sp.list !== "0";
+  // pdf=1: rendered by headless Chrome for the PDF, so only the document.
+  const pdf = sp.pdf === "1";
   const w = PLAN_WORDS[lang];
   const supabase = await createClient();
   const { data: plan } = await supabase.from("meal_plans").select("*, patients(full_name)").eq("id", id).maybeSingle();
@@ -58,8 +60,9 @@ export default async function PlanPrint({ params, searchParams }: PageProps<"/pr
   const link = (q: Record<string, string>) => `/print/plan/${id}?${new URLSearchParams({ ...(lang !== "en" ? { lang } : {}), ...(withList ? {} : { list: "0" }), ...q })}`;
 
   return (
-    <main className="flex flex-1 justify-center bg-canvas px-4 py-8 print:bg-white print:p-0">
+    <main className={`flex flex-1 justify-center px-4 py-8 print:bg-white print:p-0 ${pdf ? "bg-white" : "bg-canvas"}`}>
       <div className="w-full max-w-3xl space-y-4">
+        {!pdf && (
         <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
           <Link href={`/dashboard/patients/${plan.patient_id}?tab=plans`} className="text-sm text-muted hover:text-ink">
             Back
@@ -84,9 +87,8 @@ export default async function PlanPrint({ params, searchParams }: PageProps<"/pr
             <PrintButton />
           </div>
         </div>
-        <p className="text-xs text-muted print:hidden">To send it on WhatsApp: Print, choose &quot;Save as PDF&quot;, then attach the file. Your notes print as you wrote them.</p>
-
-        {lang !== "en" && (
+        )}
+        {!pdf && lang !== "en" && (
           <NameEditor
             lang={lang}
             foods={[...english].map(([fid, en]) => ({ id: fid, name: en, current: own.get(fid) ?? names.get(fid) ?? "", suggestion: suggestFoodName(en, lang) }))}
@@ -94,6 +96,16 @@ export default async function PlanPrint({ params, searchParams }: PageProps<"/pr
         )}
 
         <article dir={lang === "ar" ? "rtl" : "ltr"} lang={lang} className="rounded-2xl border border-line bg-surface p-10 text-sm print:rounded-none print:border-0 print:p-0">
+          <div className="mb-6 flex items-center justify-between gap-4 rounded-xl bg-ink px-5 py-4 text-white [print-color-adjust:exact]">
+            <span className="flex items-center gap-3">
+              <span className="h-8 w-1 rounded-full bg-brand" aria-hidden />
+              <span>
+                <span className="block text-xs tracking-widest text-brand uppercase">{w.mealPlan}</span>
+                <span className="block text-base font-semibold">{membership.practiceName}</span>
+              </span>
+            </span>
+            <Logo className="text-sm text-white" />
+          </div>
           <header className="flex items-start justify-between gap-6 border-b border-line pb-5">
             <div>
               <p className="text-xl font-semibold">{plan.name}</p>

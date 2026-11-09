@@ -5,7 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import { errorMessage, text, type ActionState } from "@/lib/action-result";
 import { BILLING_ROLES } from "@/lib/roles";
 import { requireStaff } from "@/lib/session";
-import { sendAppInvite, sendIntakeForm } from "@/lib/whatsapp-events";
+import { planFileName, renderPlanPdf } from "@/lib/plan-pdf";
+import { CLINICAL_ROLES } from "@/lib/roles";
+import { sendAppInvite, sendIntakeForm, sendPlanPdf } from "@/lib/whatsapp-events";
 
 // Owner: send from the Nutrix number, or from the practice's own WhatsApp API.
 export async function saveWhatsAppSettings(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -26,7 +28,8 @@ const REASONS: Record<string, string> = {
   no_phone: "This patient has no phone number in their file.",
   not_connected: "WhatsApp isn't connected yet. Set it up in WhatsApp.",
   off: "Automatic WhatsApp is switched off for this practice.",
-  already_sent: "Already sent today.",
+  already_sent: "Already sent. Try again a little later.",
+  pdf_failed: "The PDF couldn't be made. Please try again.",
   not_found: "Patient not found.",
   failed: "WhatsApp refused the message. See the WhatsApp log for the reason.",
 };
@@ -44,4 +47,16 @@ export async function sendAppInviteAction(patientId: string, url: string): Promi
 export async function sendIntakeAction(patientId: string, url: string): Promise<ActionState> {
   await requireStaff(BILLING_ROLES.concat("dietitian"));
   return result(await sendIntakeForm(patientId, url));
+}
+
+// The meal plan as a PDF, sent straight to the patient's WhatsApp.
+export async function sendPlanPdfAction(planId: string): Promise<ActionState> {
+  await requireStaff(CLINICAL_ROLES);
+  const { data: plan } = await (await createClient()).from("meal_plans").select("name, patients(full_name)").eq("id", planId).maybeSingle();
+  if (!plan?.patients) return { error: "Plan not found." };
+  try {
+    return result(await sendPlanPdf(planId, async (lang) => ({ data: await renderPlanPdf(planId, lang), filename: planFileName(plan.name, plan.patients!.full_name) })));
+  } catch {
+    return result({ error: "pdf_failed" });
+  }
 }

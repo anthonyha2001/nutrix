@@ -10,7 +10,7 @@ import type { Lang } from "@/lib/patient-i18n";
 // English ("en") and Arabic ("ar"), body variables {{1}}, {{2}}… in order.
 // The texts below must match the approved templates word for word (README).
 
-export type WhatsAppKind = "appointment_reminder" | "appointment_confirmed" | "payment_received" | "package_expiring" | "plan_ready" | "app_invite" | "intake_form";
+export type WhatsAppKind = "appointment_reminder" | "appointment_confirmed" | "payment_received" | "package_expiring" | "plan_ready" | "app_invite" | "intake_form" | "plan_pdf";
 
 const TEMPLATE: Record<WhatsAppKind, string> = {
   appointment_reminder: "nutrix_appointment_reminder",
@@ -20,6 +20,8 @@ const TEMPLATE: Record<WhatsAppKind, string> = {
   plan_ready: "nutrix_plan_ready",
   app_invite: "nutrix_app_invite",
   intake_form: "nutrix_intake_form",
+  // Header: a document (the plan PDF).
+  plan_pdf: "nutrix_plan_pdf",
 };
 
 // What the patient reads (kept in the log).
@@ -52,6 +54,10 @@ export const WHATSAPP_BODIES: Record<WhatsAppKind, Record<Lang, (p: string[]) =>
     en: (p) => `Hi ${p[0]}, before your first visit at ${p[1]}, please fill in this short form (about 5 minutes): ${p[2]}`,
     ar: (p) => `مرحباً ${p[0]}، قبل زيارتك الأولى إلى ${p[1]}، يرجى تعبئة هذه الاستمارة القصيرة (حوالي 5 دقائق): ${p[2]}`,
   },
+  plan_pdf: {
+    en: (p) => `Hi ${p[0]}, here is your meal plan from ${p[1]}. You can also find it in the Nutrix app.`,
+    ar: (p) => `مرحباً ${p[0]}، إليك برنامجك الغذائي من ${p[1]}. تجده أيضاً في تطبيق Nutrix.`,
+  },
 };
 
 type Keys = { token: string; phoneNumberId: string; sender: "nutrix" | "own" };
@@ -74,7 +80,7 @@ export const whatsappKeys = cache(async (): Promise<{ token: string; phoneNumber
 
 // Sends one message, at most once per (kind, ref). Never throws: failures are
 // kept in whatsapp_log for the practice to see.
-export async function sendWhatsApp(msg: { kind: WhatsAppKind; ref: string; practiceId: string; patientId: string; phone: string | null; lang: Lang; params: string[] }) {
+export async function sendWhatsApp(msg: { kind: WhatsAppKind; ref: string; practiceId: string; patientId: string; phone: string | null; lang: Lang; params: string[]; document?: { data: Buffer; filename: string } }) {
   const to = waNumber(msg.phone);
   if (!to) return { error: "no_phone" as const };
   const keys = await keysFor(msg.practiceId);
@@ -96,6 +102,18 @@ export async function sendWhatsApp(msg: { kind: WhatsAppKind; ref: string; pract
 
   let error: string | null = null;
   try {
+    const components: object[] = [{ type: "body", parameters: msg.params.map((text) => ({ type: "text", text })) }];
+    if (msg.document) {
+      // The PDF goes to WhatsApp first; the message then refers to it by id.
+      const form = new FormData();
+      form.append("messaging_product", "whatsapp");
+      form.append("type", "application/pdf");
+      form.append("file", new Blob([new Uint8Array(msg.document.data)], { type: "application/pdf" }), msg.document.filename);
+      const up = await fetch(`https://graph.facebook.com/v21.0/${keys.phoneNumberId}/media`, { method: "POST", headers: { Authorization: `Bearer ${keys.token}` }, body: form });
+      const media = await up.json().catch(() => null);
+      if (!up.ok || !media?.id) throw new Error((media?.error?.message as string | undefined) ?? `Upload failed (HTTP ${up.status})`);
+      components.unshift({ type: "header", parameters: [{ type: "document", document: { id: media.id, filename: msg.document.filename } }] });
+    }
     const res = await fetch(`https://graph.facebook.com/v21.0/${keys.phoneNumberId}/messages`, {
       method: "POST",
       headers: { Authorization: `Bearer ${keys.token}`, "Content-Type": "application/json" },
@@ -103,7 +121,7 @@ export async function sendWhatsApp(msg: { kind: WhatsAppKind; ref: string; pract
         messaging_product: "whatsapp",
         to,
         type: "template",
-        template: { name: TEMPLATE[msg.kind], language: { code: msg.lang }, components: [{ type: "body", parameters: msg.params.map((text) => ({ type: "text", text })) }] },
+        template: { name: TEMPLATE[msg.kind], language: { code: msg.lang }, components },
       }),
     });
     if (!res.ok) error = ((await res.json().catch(() => null))?.error?.message as string | undefined) ?? `HTTP ${res.status}`;
