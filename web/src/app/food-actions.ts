@@ -46,7 +46,7 @@ export async function searchFoods(query: string, limit = 25, lang: "en" | "ar" =
   const supabase = await createClient();
   // Arabic typing searches the confirmed Arabic names.
   if (/[؀-ۿ]/.test(q)) {
-    const { data: names } = await supabase.from("food_translations").select("food_id, name").eq("lang", "ar").ilike("name", `%${q.replace(/[%_\]/g, "")}%`).limit(limit);
+    const { data: names } = await supabase.from("food_translations").select("food_id, name").eq("lang", "ar").ilike("name", `%${q.replace(/[%_\\]/g, "")}%`).limit(limit);
     const ids = [...new Set((names ?? []).map((n) => n.food_id))];
     if (!ids.length) return [];
     const { data: foods } = await supabase.from("foods").select("*").in("id", ids).is("archived_at", null);
