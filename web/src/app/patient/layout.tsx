@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { InstallPrompt } from "@/components/install-prompt";
 import { SupportBanner } from "@/components/support-banner";
 import { Logo, Skeleton } from "@/components/ui";
 import { practiceFeatures } from "@/lib/features";
@@ -47,6 +48,7 @@ async function PatientShell({ children }: { children: React.ReactNode }) {
         <Suspense fallback={<Skeleton className="h-64" />}>{children}</Suspense>
       </main>
       <PatientNav unread={count ?? 0} hidden={hidden} lang={lang} />
+      <InstallPrompt lang={lang} />
     </div>
   );
 }

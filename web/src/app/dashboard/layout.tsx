@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { LogOut } from "lucide-react";
 import { Skeleton } from "@/components/ui";
 import { CommandPalette } from "@/components/command-palette";
+import { InstallPrompt } from "@/components/install-prompt";
 import { SupportBanner } from "@/components/support-banner";
 import { practiceFeatures } from "@/lib/features";
 import { navFor } from "@/lib/modules";
@@ -37,6 +38,7 @@ export default function DashboardLayout({ children }: LayoutProps<"/dashboard">)
         </Suspense>
         <Suspense fallback={<Skeleton className="h-96" />}>{children}</Suspense>
       </main>
+      <InstallPrompt />
     </div>
   );
 }
